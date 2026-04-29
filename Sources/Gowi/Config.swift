@@ -1,9 +1,9 @@
 import Foundation
 
 enum Config {
-    /// GitHub OAuth App client ID. Public by design (device flow ships the client ID
-    /// to the user's browser) — safe to commit.
-    static let githubClientID = "Ov23lijdfBe0dBDCDccH"
+    /// GitHub OAuth App client ID. Read from the gitignored `Secrets.swift`
+    /// so forks/clones supply their own. See `Secrets.swift.template`.
+    static var githubClientID: String { Secrets.githubClientID }
 
     /// Bundle identifier. Must match the Xcode project bundle ID when we migrate.
     static let bundleID = "com.lloydmajor.gowi"

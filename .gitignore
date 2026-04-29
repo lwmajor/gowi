@@ -25,6 +25,6 @@ Package.resolved
 .AppleDouble
 .LSOverride
 
-# Secrets (do not commit real client secrets; client IDs are public so Config.swift stays tracked)
-Secrets.swift
+# Secrets — the real file lives at Sources/Gowi/Secrets.swift; a template is committed at the repo root.
+Sources/Gowi/Secrets.swift
 .env

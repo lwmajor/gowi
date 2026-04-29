@@ -30,10 +30,18 @@ xcodebuild -project gowi.xcodeproj -scheme gowi -destination 'platform=macOS' te
 ## First-run setup
 
 1. Register a GitHub OAuth app at <https://github.com/settings/applications/new>. Enable "Device Flow".
-2. Put the Client ID in `Sources/Gowi/Config.swift` (replace the existing value).
-3. Build & run via Xcode (⌘R) or the command line.
-4. Click "Sign in with GitHub", follow the device-flow prompt in your browser.
-5. Open Settings → Repositories, add `owner/name` entries.
+2. Copy the template and fill in your client ID (the real file is gitignored):
+   ```
+   cp Secrets.swift.template Sources/Gowi/Secrets.swift
+   $EDITOR Sources/Gowi/Secrets.swift
+   ```
+3. Generate the Xcode project:
+   ```
+   xcodegen generate
+   ```
+4. Build & run via Xcode (⌘R) or the command line.
+5. Click "Sign in with GitHub", follow the device-flow prompt in your browser.
+6. Open Settings → Repositories, add `owner/name` entries.
 
 ## Layout
 
