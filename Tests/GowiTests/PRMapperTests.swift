@@ -1,6 +1,4 @@
-#if canImport(XCTest)
 import XCTest
-@testable import Gowi
 
 final class PRMapperTests: XCTestCase {
     func testMapReviewKnownValues() {
@@ -29,4 +27,3 @@ final class PRMapperTests: XCTestCase {
         XCTAssertEqual(PRMapper.mapChecks("UNKNOWN"), .noChecks)
     }
 }
-#endif

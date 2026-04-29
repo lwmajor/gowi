@@ -1,6 +1,4 @@
-#if canImport(XCTest)
 import XCTest
-@testable import Gowi
 
 final class TrackedRepoTests: XCTestCase {
     func testValidInput() {
@@ -36,4 +34,3 @@ final class TrackedRepoTests: XCTestCase {
         XCTAssertEqual(r.pullsURL.absoluteString, "https://github.com/apple/swift/pulls")
     }
 }
-#endif

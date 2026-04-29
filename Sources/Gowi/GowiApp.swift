@@ -8,11 +8,6 @@ struct GowiApp: App {
     @StateObject private var store: RepoStore
 
     init() {
-        // Without a proper .app bundle (we're running via `swift run` during the PoC),
-        // macOS won't activate the process as a regular app. Force regular activation
-        // policy so a window actually appears and takes focus.
-        NSApplication.shared.setActivationPolicy(.regular)
-
         let auth = AuthService()
         let store = RepoStore()
         _auth = StateObject(wrappedValue: auth)
@@ -21,7 +16,7 @@ struct GowiApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("gowi") {
+        WindowGroup("gowi", id: "main") {
             MainWindow()
                 .environmentObject(model)
                 .environmentObject(auth)
@@ -36,5 +31,15 @@ struct GowiApp: App {
                 .environmentObject(auth)
                 .environmentObject(store)
         }
+
+        MenuBarExtra {
+            MenuBarRoot()
+                .environmentObject(model)
+                .environmentObject(auth)
+                .environmentObject(store)
+        } label: {
+            MenuBarLabel(model: model)
+        }
+        .menuBarExtraStyle(.window)
     }
 }

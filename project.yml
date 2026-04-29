@@ -1,0 +1,70 @@
+name: gowi
+options:
+  bundleIdPrefix: com.lloydmajor
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+configs:
+  Debug: debug
+  Release: release
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ENABLE_HARDENED_RUNTIME: YES
+    GENERATE_INFOPLIST_FILE: NO
+
+targets:
+  Gowi:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Sources/Gowi
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lloydmajor.gowi
+        INFOPLIST_FILE: App/Info.plist
+        CODE_SIGN_ENTITLEMENTS: App/Gowi.entitlements
+        CODE_SIGN_STYLE: Automatic
+        COMBINE_HIDPI_IMAGES: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        DEFINES_MODULE: YES
+        ENABLE_TESTABILITY: YES
+
+  GowiTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Tests/GowiTests
+      - path: Sources/Gowi
+        excludes:
+          - "GowiApp.swift"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lloydmajor.gowi.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  gowi:
+    build:
+      targets:
+        Gowi: all
+        GowiTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - GowiTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release

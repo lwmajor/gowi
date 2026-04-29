@@ -1,6 +1,4 @@
-#if canImport(XCTest)
 import XCTest
-@testable import Gowi
 
 final class KeychainHelperTests: XCTestCase {
     private let helper = KeychainHelper(
@@ -37,4 +35,3 @@ final class KeychainHelperTests: XCTestCase {
         XCTAssertNil(try helper.read())
     }
 }
-#endif

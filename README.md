@@ -6,36 +6,50 @@ See `pr-tracker-spec.md` for the full product + technical spec and `TASKS.md` fo
 
 ## Status
 
-Pre-v1 proof of concept. The PoC builds a window-only, device-flow, single-repo-fetch version against real GitHub. Menu bar, cache, and polish come in subsequent milestones.
+Pre-v1. Window app works end-to-end (device-flow sign-in, keychain, settings, per-repo PR fetch, grouped list, status icons, collapsible sections, ⌘R / trackpad pull-to-refresh). MenuBarExtra, cache, Sparkle, and distribution are the remaining milestones.
 
 ## Building
 
-During the PoC the project is a plain Swift Package so it builds with the command-line toolchain:
+The Xcode project is generated from `project.yml` by [xcodegen](https://github.com/yonaskolb/XcodeGen):
 
 ```
-swift build
-swift run gowi
+brew install xcodegen      # once
+xcodegen generate           # whenever project.yml changes
+open gowi.xcodeproj
 ```
 
-Once Xcode is installed, the same `Sources/` tree is intended to drop into an Xcode project (see `TASKS.md` task #1). Sandboxing, entitlements, and signing live in the Xcode project — the SPM build is unsandboxed and intended for local development only.
+Or from the command line:
+
+```
+xcodebuild -project gowi.xcodeproj -scheme gowi -destination 'platform=macOS' build
+xcodebuild -project gowi.xcodeproj -scheme gowi -destination 'platform=macOS' test
+```
+
+`gowi.xcodeproj/` is gitignored — regenerate via `xcodegen` after pulling.
 
 ## First-run setup
 
 1. Register a GitHub OAuth app at <https://github.com/settings/applications/new>. Enable "Device Flow".
-2. Copy the Client ID into `Sources/Gowi/Config.swift` (replace the `GITHUB_CLIENT_ID_TODO` placeholder).
-3. `swift run gowi`, click "Sign in with GitHub", follow the device-flow prompt in your browser.
-4. Open Settings → Repositories, add `owner/name` entries to track.
+2. Put the Client ID in `Sources/Gowi/Config.swift` (replace the existing value).
+3. Build & run via Xcode (⌘R) or the command line.
+4. Click "Sign in with GitHub", follow the device-flow prompt in your browser.
+5. Open Settings → Repositories, add `owner/name` entries.
 
 ## Layout
 
 ```
+App/
+  Info.plist
+  Gowi.entitlements       # sandbox + network.client only
 Sources/Gowi/
-├── Config.swift              # OAuth client ID constant
-├── GowiApp.swift             # App entry point (scenes)
-├── AppModel.swift            # Observable root state
-├── Models/                   # PullRequest, TrackedRepo, enums
-├── Auth/                     # KeychainHelper, DeviceFlowClient, AuthService
-├── Net/                      # GraphQL client + queries
-├── Settings/                 # RepoStore (UserDefaults-backed)
-└── UI/                       # Views
+  Config.swift            # OAuth client ID
+  GowiApp.swift           # App entry (scenes)
+  AppModel.swift          # Observable root state + refresh loop
+  Models/                 # PullRequest, TrackedRepo, enums
+  Auth/                   # KeychainHelper, DeviceFlowClient, AuthService
+  Net/                    # GraphQL client + typed queries + PRMapper
+  Settings/               # RepoStore
+  UI/                     # Views
+Tests/GowiTests/          # XCTest — tests compile sources directly
+project.yml               # xcodegen spec
 ```

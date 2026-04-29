@@ -2,6 +2,7 @@
 xcuserdata/
 *.xcworkspace/xcuserdata/
 DerivedData/
+build/
 *.xcuserstate
 *.xccheckout
 *.moved-aside
@@ -11,7 +12,10 @@ DerivedData/
 *.dSYM.zip
 *.dSYM
 
-# Swift Package Manager
+# xcodegen: .xcodeproj is generated from project.yml. Commit project.yml only.
+*.xcodeproj/
+
+# Swift Package Manager (unused now; Xcode project is authoritative)
 .build/
 .swiftpm/
 Package.resolved

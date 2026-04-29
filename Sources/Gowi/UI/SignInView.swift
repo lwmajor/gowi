@@ -26,7 +26,7 @@ struct SignInView: View {
 
     private var idle: some View {
         VStack(spacing: 16) {
-            Image(systemName: "arrow.triangle.pull")
+            Image(systemName: "arrow.triangle.branch")
                 .font(.system(size: 48))
                 .foregroundStyle(.secondary)
             Text("Sign in with GitHub")

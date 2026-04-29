@@ -1,6 +1,4 @@
-#if canImport(XCTest)
 import XCTest
-@testable import Gowi
 
 @MainActor
 final class RepoStoreTests: XCTestCase {
@@ -29,7 +27,6 @@ final class RepoStoreTests: XCTestCase {
         XCTAssertEqual(store.repos.map(\.nameWithOwner),
                        ["apple/swift", "pointfreeco/swift-composable-architecture"])
 
-        // reload from the same defaults to prove persistence
         let reloaded = RepoStore(defaults: defaults)
         XCTAssertEqual(reloaded.repos.map(\.nameWithOwner),
                        ["apple/swift", "pointfreeco/swift-composable-architecture"])
@@ -59,4 +56,3 @@ final class RepoStoreTests: XCTestCase {
         XCTAssertEqual(store.repos, [c, a, b])
     }
 }
-#endif
