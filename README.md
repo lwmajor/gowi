@@ -27,7 +27,9 @@ gowi is **read-only** — it never opens, closes, merges, or comments on pull re
 
 ## Status
 
-Window app is feature-complete for v1: device-flow sign-in, keychain, settings, per-repo PR fetch, batched GraphQL, grouped list, review/CI status icons, new-since dot, collapsible sections, cache, ⌘R / trackpad pull-to-refresh, SAML SSO handling, rate-limit awareness, and menu bar extra. Sparkle auto-update and the distribution pipeline (notarized DMG, appcast) are wired up and ready for the first release.
+**0.1.0 alpha** — first public release. The window app is feature-complete for v1: device-flow sign-in, keychain, settings, per-repo PR fetch, batched GraphQL, grouped list, review/CI status icons, new-since dot, collapsible sections, cache, ⌘R / trackpad pull-to-refresh, SAML SSO handling, rate-limit awareness, and menu bar extra. Sparkle auto-update and the distribution pipeline (notarized DMG, appcast) are wired up.
+
+See [`CHANGELOG.md`](CHANGELOG.md) for the full feature list and known limitations. Bug reports welcome on the [issue tracker](https://github.com/lwmajor/gowi/issues).
 
 ## Building
 

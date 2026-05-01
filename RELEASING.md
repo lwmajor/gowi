@@ -94,10 +94,25 @@ git push origin main --tags
 ```sh
 gh release create vx.y.z build/gowi-x.y.z.dmg App/appcast.xml \
   --title "gowi vx.y.z" \
-  --notes "See CHANGELOG or commit log for changes."
+  --notes-file CHANGELOG.md
+```
+
+For an alpha / beta / RC, mark the GitHub release as a pre-release. Apple requires
+`CFBundleShortVersionString` to be three numeric components, so the pre-release
+designation lives in the GitHub release (and in `CHANGELOG.md`), not in the in-app
+version string:
+
+```sh
+gh release create v0.1.0 build/gowi-0.1.0.dmg App/appcast.xml \
+  --title "gowi v0.1.0 (alpha)" \
+  --notes-file CHANGELOG.md \
+  --prerelease
 ```
 
 Sparkle reads the appcast from:
 `https://github.com/lwmajor/gowi/releases/latest/download/appcast.xml`
 
 Uploading `appcast.xml` to each release and tagging it as `latest` satisfies this URL.
+Note: GitHub treats the most recent non-prerelease as `latest`. While only pre-releases
+exist, manually mark the desired release as `latest` (or add `--latest` to
+`gh release create`) so Sparkle clients can find the appcast.
