@@ -13,8 +13,7 @@ jobs:
     runs-on: macos-latest
 
     env:
-      DERIVED_DATA: ${{ runner.temp }}/DerivedData
-      SPM_CACHE: ${{ runner.temp }}/spm
+      SPM_CACHE: $HOME/.spm-cache
 
     steps:
       - name: Checkout
@@ -25,6 +24,9 @@ jobs:
 
       - name: Install XcodeGen
         run: brew install xcodegen
+
+      - name: Create Secrets.swift from template
+        run: cp Secrets.swift.template Sources/Gowi/Secrets.swift
 
       - name: Generate Xcode project
         run: xcodegen generate
@@ -39,16 +41,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-spm-
 
-      # Cache DerivedData keyed per branch + commit, with broader restore keys.
-      - name: Cache DerivedData
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.DERIVED_DATA }}
-          key: ${{ runner.os }}-deriveddata-${{ github.ref_name }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-deriveddata-${{ github.ref_name }}-
-            ${{ runner.os }}-deriveddata-
-
       - name: Build + test (macOS)
         run: |
           set -euo pipefail
@@ -57,6 +49,5 @@ jobs:
             -scheme gowi \
             -configuration Debug \
             -destination 'platform=macOS' \
-            -derivedDataPath "${DERIVED_DATA}" \
             -clonedSourcePackagesDirPath "${SPM_CACHE}" \
             clean test
