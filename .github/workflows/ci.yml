@@ -1,0 +1,57 @@
+on:
+  pull_request:
+  push:
+    branches: ["**"]
+
+jobs:
+  macos-ci:
+    runs-on: macos-latest
+
+    env:
+      DERIVED_DATA: ${{ runner.temp }}/DerivedData
+      SPM_CACHE: ${{ runner.temp }}/spm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      # Cache Swift Package Manager artifacts.
+      # Falls back to a static suffix when Package.resolved is absent.
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.SPM_CACHE }}
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') || 'no-spm' }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      # Cache DerivedData keyed per branch + commit, with broader restore keys.
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.DERIVED_DATA }}
+          key: ${{ runner.os }}-deriveddata-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-deriveddata-${{ github.ref_name }}-
+            ${{ runner.os }}-deriveddata-
+
+      - name: Build + test (macOS)
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project gowi.xcodeproj \
+            -scheme gowi \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            -derivedDataPath "${DERIVED_DATA}" \
+            -clonedSourcePackagesDirPath "${SPM_CACHE}" \
+            clean test
