@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0"
+     xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"
+     xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>gowi Updates</title>
+    <link>https://github.com/lwmajor/gowi/releases/latest/download/appcast.xml</link>
+    <description>Most recent gowi releases.</description>
+    <language>en</language>
+
+    <!-- Add a new <item> block here for each release. -->
+    <!-- Run `scripts/build-dmg.sh`, then `bin/sign_update` to get edSignature and length. -->
+
+    <item>
+      <title>Version 0.1.0</title>
+      <pubDate>Thu, 01 May 2026 00:00:00 +0000</pubDate>
+      <sparkle:version>1</sparkle:version>
+      <sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>
+      <enclosure
+        url="https://github.com/lwmajor/gowi/releases/download/v0.1.0/gowi-0.1.0.dmg"
+        length="REPLACE_WITH_FILESIZE_IN_BYTES"
+        type="application/octet-stream"
+        sparkle:edSignature="REPLACE_WITH_EDDSA_SIGNATURE"
+      />
+    </item>
+  </channel>
+</rss>
