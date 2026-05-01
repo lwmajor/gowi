@@ -43,7 +43,7 @@ jobs:
           set -euo pipefail
           xcodebuild \
             -project gowi.xcodeproj \
-            -scheme Gowi \
+            -scheme gowi \
             -configuration Debug \
             -destination 'platform=macOS' \
             -clonedSourcePackagesDirPath "${SPM_CACHE}" \
