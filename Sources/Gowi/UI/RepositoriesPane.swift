@@ -5,6 +5,7 @@ struct RepositoriesPane: View {
     @EnvironmentObject private var model: AppModel
     @State private var showingAdd = false
     @State private var selectedRepo: TrackedRepo.ID?
+    @State private var repoToDelete: TrackedRepo?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -22,7 +23,6 @@ struct RepositoriesPane: View {
                         .tag(repo.id)
                     }
                     .onMove { store.move(fromOffsets: $0, toOffset: $1) }
-                    .onDelete { store.remove(at: $0) }
                 }
                 .frame(minHeight: 180)
                 .onChange(of: store.repos) { _, repos in
@@ -42,10 +42,7 @@ struct RepositoriesPane: View {
                 .help("Add repository")
 
                 Button {
-                    if let id = selectedRepo,
-                       let repo = store.repos.first(where: { $0.id == id }) {
-                        store.remove(repo)
-                    }
+                    confirmDelete(id: selectedRepo)
                 } label: {
                     Image(systemName: "minus")
                 }
@@ -58,6 +55,13 @@ struct RepositoriesPane: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            // Intercepts Backspace/Delete key when a row is selected.
+            Button("") { confirmDelete(id: selectedRepo) }
+                .keyboardShortcut(.delete, modifiers: [])
+                .disabled(selectedRepo == nil)
+                .frame(width: 0, height: 0)
+                .opacity(0)
         }
         .padding()
         .sheet(isPresented: $showingAdd) {
@@ -65,6 +69,23 @@ struct RepositoriesPane: View {
                 .environmentObject(store)
                 .environmentObject(model)
         }
+        .alert(
+            "Remove \(repoToDelete?.nameWithOwner ?? "")?",
+            isPresented: Binding(get: { repoToDelete != nil }, set: { if !$0 { repoToDelete = nil } })
+        ) {
+            Button("Remove", role: .destructive) {
+                if let repo = repoToDelete { store.remove(repo) }
+                repoToDelete = nil
+            }
+            Button("Cancel", role: .cancel) { repoToDelete = nil }
+        } message: {
+            Text("This repository will stop being tracked.")
+        }
+    }
+
+    private func confirmDelete(id: TrackedRepo.ID?) {
+        guard let id, let repo = store.repos.first(where: { $0.id == id }) else { return }
+        repoToDelete = repo
     }
 
     private var emptyState: some View {
