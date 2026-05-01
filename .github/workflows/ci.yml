@@ -13,9 +13,6 @@ jobs:
   macos-ci:
     runs-on: macos-latest
 
-    env:
-      DERIVED_DATA: ${{ runner.temp }}/DerivedData
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
