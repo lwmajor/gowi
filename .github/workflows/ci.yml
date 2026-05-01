@@ -33,7 +33,7 @@ jobs:
       - name: Cache DerivedData
         uses: actions/cache@v4
         with:
-          path: ${{ env.DERIVED_DATA }}
+          path: ${{ runner.temp }}/DerivedData
           key: ${{ runner.os }}-deriveddata-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-deriveddata-${{ github.ref_name }}-
@@ -47,5 +47,5 @@ jobs:
             -scheme gowi \
             -configuration Debug \
             -destination 'platform=macOS' \
-            -derivedDataPath "${DERIVED_DATA}" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
             clean test
