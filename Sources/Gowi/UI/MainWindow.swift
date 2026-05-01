@@ -57,6 +57,12 @@ struct MainWindow: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .principal) {
+            Image("GowiLogo")
+                .resizable()
+                .scaledToFit()
+                .frame(height: 24)
+        }
         if auth.state == .signedIn {
             ToolbarItem(placement: .navigation) {
                 Text("\(totalPRs(groups)) open")
