@@ -41,6 +41,7 @@ struct MenuBarRoot: View {
             footer
         }
         .frame(width: 420, height: 560)
+        .onAppear { markSeen() }
     }
 
     // MARK: - sections
@@ -104,7 +105,9 @@ struct MenuBarRoot: View {
                 } else {
                     PRListView(
                         groups: groups,
-                        onRetry: { model.refresh() },
+                        onRetry: { repo in
+                            if let repo { model.refreshSingleRepo(repo) } else { model.refresh() }
+                        },
                         onPullRefresh: { await model.performRefresh() }
                     )
                 }
@@ -171,5 +174,9 @@ struct MenuBarRoot: View {
     private func openMainWindow() {
         openWindow(id: "main")
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    private func markSeen() {
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "lastSeenAt")
     }
 }

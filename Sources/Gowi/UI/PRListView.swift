@@ -3,7 +3,7 @@ import AppKit
 
 struct PRListView: View {
     let groups: [RepoGroup]
-    let onRetry: () -> Void
+    let onRetry: (TrackedRepo?) -> Void
     let onPullRefresh: () async -> Void
 
     @State private var collapsed: Set<String> = []
@@ -27,7 +27,7 @@ struct PRListView: View {
     @ViewBuilder
     private func body(for group: RepoGroup) -> some View {
         if let error = group.error {
-            errorRow(error)
+            errorRow(error, repo: group.repo)
         } else if group.pullRequests.isEmpty {
             Text("No open PRs")
                 .font(.callout)
@@ -95,7 +95,7 @@ struct PRListView: View {
         }
     }
 
-    private func errorRow(_ message: String) -> some View {
+    private func errorRow(_ message: String, repo: TrackedRepo) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
@@ -104,7 +104,7 @@ struct PRListView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
             Spacer()
-            Button("Retry", action: onRetry)
+            Button("Retry") { onRetry(repo) }
                 .buttonStyle(.link)
         }
     }

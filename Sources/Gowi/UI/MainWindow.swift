@@ -12,6 +12,10 @@ struct MainWindow: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .toolbar { toolbarContent }
         }
+        .onAppear { markSeen() }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            markSeen()
+        }
     }
 
     // MARK: - content
@@ -33,7 +37,9 @@ struct MainWindow: View {
                 } else {
                     PRListView(
                         groups: groups,
-                        onRetry: { model.refresh() },
+                        onRetry: { repo in
+                            if let repo { model.refreshSingleRepo(repo) } else { model.refresh() }
+                        },
                         onPullRefresh: { await model.performRefresh() }
                     )
                 }
@@ -53,15 +59,23 @@ struct MainWindow: View {
             }
             ToolbarItem(placement: .primaryAction) {
                 Button { model.refresh() } label: {
-                    if model.isRefreshing {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Image(systemName: "arrow.clockwise")
+                    ZStack(alignment: .topTrailing) {
+                        if model.isRefreshing {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        if model.rateLimitWarning {
+                            Circle()
+                                .fill(Color.orange)
+                                .frame(width: 7, height: 7)
+                                .offset(x: 5, y: -5)
+                        }
                     }
                 }
                 .disabled(model.isRefreshing)
                 .keyboardShortcut("r", modifiers: .command)
-                .help("Refresh now (⌘R)")
+                .help(model.rateLimitWarning ? "Rate limit low — refresh paused" : "Refresh now (⌘R)")
             }
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -136,5 +150,9 @@ struct MainWindow: View {
 
     private func totalPRs(_ groups: [RepoGroup]) -> Int {
         groups.reduce(0) { $0 + $1.totalCount }
+    }
+
+    private func markSeen() {
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "lastSeenAt")
     }
 }

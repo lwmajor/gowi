@@ -4,9 +4,19 @@ import AppKit
 struct PRRow: View {
     let pr: PullRequest
     @State private var hovering = false
+    @AppStorage("lastSeenAt") private var lastSeenAtTimestamp: Double = 0
+
+    private var isNew: Bool {
+        guard lastSeenAtTimestamp > 0 else { return false }
+        return pr.updatedAt > Date(timeIntervalSince1970: lastSeenAtTimestamp)
+    }
 
     var body: some View {
         HStack(spacing: 10) {
+            Circle()
+                .fill(isNew ? Color.accentColor : Color.clear)
+                .frame(width: 6, height: 6)
+
             avatar
                 .frame(width: 24, height: 24)
                 .clipShape(Circle())

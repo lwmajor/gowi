@@ -71,7 +71,7 @@ extension GitHubClient {
         let pullRequests: [PullRequest]
     }
 
-    fileprivate struct PRWire: Decodable {
+    struct PRWire: Decodable {
         let id: String
         let number: Int
         let title: String
@@ -143,7 +143,7 @@ extension GitHubClient {
 
 /// Mapping wire types → domain model. Public so tests can exercise it directly.
 enum PRMapper {
-    fileprivate static func toPullRequest(_ w: GitHubClient.PRWire, repo: TrackedRepo) -> PullRequest {
+    static func toPullRequest(_ w: GitHubClient.PRWire, repo: TrackedRepo) -> PullRequest {
         PullRequest(
             id: w.id,
             number: w.number,

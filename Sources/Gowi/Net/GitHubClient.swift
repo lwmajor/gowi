@@ -46,7 +46,7 @@ struct GraphQLResponse<T: Decodable>: Decodable {
 final class GitHubClient {
     private let tokenProvider: () -> String?
     private let session: URLSession
-    private let decoder: JSONDecoder
+    let decoder: JSONDecoder
 
     init(tokenProvider: @escaping () -> String?, session: URLSession = .shared) {
         self.tokenProvider = tokenProvider
@@ -56,30 +56,25 @@ final class GitHubClient {
         self.decoder = d
     }
 
-    /// Execute a GraphQL query, return the decoded `data` payload.
-    /// Throws on network error, 401, non-2xx HTTP, or non-empty GraphQL `errors`.
-    func send<T: Decodable>(
-        _ query: String,
-        variables: [String: String] = [:],
-        as type: T.Type = T.self
-    ) async throws -> T {
+    // MARK: - internal transport
+
+    private func buildRequest(_ query: String, variables: [String: Any] = [:]) throws -> URLRequest {
         guard let token = tokenProvider(), !token.isEmpty else {
             throw GitHubError.notAuthenticated
         }
-
         var req = URLRequest(url: Config.graphQLURL)
         req.httpMethod = "POST"
         req.setValue("bearer \(token)", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue("gowi/0.1 (macOS)", forHTTPHeaderField: "User-Agent")
+        var body: [String: Any] = ["query": query]
+        if !variables.isEmpty { body["variables"] = variables }
+        req.httpBody = try JSONSerialization.data(withJSONObject: body)
+        return req
+    }
 
-        let body: [String: Any] = [
-            "query": query,
-            "variables": variables
-        ]
-        req.httpBody = try JSONSerialization.data(withJSONObject: body, options: [])
-
+    private func execute(_ req: URLRequest) async throws -> Data {
         let data: Data
         let response: URLResponse
         do {
@@ -87,7 +82,6 @@ final class GitHubClient {
         } catch {
             throw GitHubError.transport(error.localizedDescription)
         }
-
         if let http = response as? HTTPURLResponse {
             if http.statusCode == 401 { throw GitHubError.unauthorized }
             if !(200...299).contains(http.statusCode) {
@@ -95,15 +89,28 @@ final class GitHubClient {
                 throw GitHubError.http(http.statusCode, snippet)
             }
         }
+        return data
+    }
+
+    // MARK: - typed query (single data type)
+
+    /// Execute a GraphQL query, return the decoded `data` payload.
+    /// Throws on network error, 401, non-2xx HTTP, or non-empty GraphQL `errors`.
+    func send<T: Decodable>(
+        _ query: String,
+        variables: [String: String] = [:],
+        as type: T.Type = T.self
+    ) async throws -> T {
+        let req = try buildRequest(query, variables: Dictionary(uniqueKeysWithValues: variables.map { ($0.key, $0.value as Any) }))
+        let raw = try await execute(req)
 
         let envelope: GraphQLResponse<T>
         do {
-            envelope = try decoder.decode(GraphQLResponse<T>.self, from: data)
+            envelope = try decoder.decode(GraphQLResponse<T>.self, from: raw)
         } catch {
             throw GitHubError.decoding(error.localizedDescription)
         }
         if let errs = envelope.errors, !errs.isEmpty {
-            // NOT_FOUND surfaces as a typed error so callers can distinguish it.
             if errs.contains(where: { $0.type == "NOT_FOUND" }) {
                 throw GitHubError.notFound(errs.first?.message ?? "Not found")
             }
@@ -113,5 +120,14 @@ final class GitHubClient {
             throw GitHubError.decoding("GraphQL response had no data and no errors.")
         }
         return data
+    }
+
+    // MARK: - raw query (batch / partial-error handling)
+
+    /// Execute a query and return raw JSON data. HTTP errors and 401 are still thrown,
+    /// but GraphQL-level errors are left for the caller to interpret (enabling partial results).
+    func sendRaw(_ query: String) async throws -> Data {
+        let req = try buildRequest(query)
+        return try await execute(req)
     }
 }

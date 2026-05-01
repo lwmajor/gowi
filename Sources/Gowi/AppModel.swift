@@ -9,7 +9,7 @@ enum PRState {
     case error(String)
 }
 
-struct RepoGroup: Identifiable, Hashable {
+struct RepoGroup: Identifiable, Hashable, Codable {
     let repo: TrackedRepo
     let pullRequests: [PullRequest]
     let totalCount: Int          // may exceed pullRequests.count when the repo has >50 open PRs
@@ -24,6 +24,7 @@ final class AppModel: ObservableObject {
     @Published var lastError: String?
     @Published var isRefreshing: Bool = false
     @Published var lastRefresh: Date?
+    @Published var rateLimitWarning: Bool = false
 
     let github: GitHubClient
     private let auth: AuthService
@@ -31,15 +32,13 @@ final class AppModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var refreshTask: Task<Void, Never>?
     private var tickTask: Task<Void, Never>?
+    private var rateLimitPauseUntil: Date?
 
     init(auth: AuthService, store: RepoStore) {
         self.auth = auth
         self.store = store
         self.github = GitHubClient(tokenProvider: { [weak auth] in auth?.accessToken })
 
-        // React to auth state transitions. Combine fires the current value
-        // immediately on subscribe, which handles the "already signed in on
-        // launch" case without extra wiring.
         auth.$state
             .removeDuplicates()
             .sink { [weak self] newState in
@@ -47,6 +46,7 @@ final class AppModel: ObservableObject {
                 switch newState {
                 case .signedIn:
                     Task { await self.refreshViewer() }
+                    self.loadCacheIfNeeded()
                     self.refresh()
                     self.startTicking()
                 case .signedOut, .failed, .awaitingUserCode:
@@ -54,11 +54,12 @@ final class AppModel: ObservableObject {
                     self.state = .signedOut
                     self.refreshTask?.cancel()
                     self.tickTask?.cancel()
+                    self.rateLimitWarning = false
+                    self.rateLimitPauseUntil = nil
                 }
             }
             .store(in: &cancellables)
 
-        // Re-fetch whenever the tracked-repo list changes, after the initial load.
         store.$repos
             .dropFirst()
             .removeDuplicates()
@@ -66,12 +67,20 @@ final class AppModel: ObservableObject {
                 self?.refresh()
             }
             .store(in: &cancellables)
+
+        // Restart the tick loop after system sleep so the timer isn't stale.
+        NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            self.handleWake()
+        }
     }
 
     // MARK: - viewer
 
-    /// Fetch the signed-in user's login/avatar. A 401 here means the stored
-    /// token has been revoked — clear it and send the user back to sign-in.
     func refreshViewer() async {
         do {
             viewer = try await github.fetchViewer()
@@ -112,6 +121,17 @@ final class AppModel: ObservableObject {
         await task.value
     }
 
+    /// Retry a single repo without touching other groups.
+    func refreshSingleRepo(_ repo: TrackedRepo) {
+        guard auth.state == .signedIn else { return }
+        Task { [weak self] in
+            guard let self else { return }
+            await self.doRefreshSingleRepo(repo)
+        }
+    }
+
+    // MARK: - private refresh
+
     private func doRefresh() async {
         isRefreshing = true
         defer { isRefreshing = false }
@@ -125,45 +145,114 @@ final class AppModel: ObservableObject {
 
         if case .loaded = state {} else { state = .loading }
 
-        var groups: [RepoGroup] = []
-        for repo in repos {
-            if Task.isCancelled { return }
-            do {
-                let result = try await github.fetchOpenPRs(in: repo)
-                groups.append(RepoGroup(
-                    repo: repo,
-                    pullRequests: result.pullRequests,
-                    totalCount: result.totalCount,
-                    error: nil
-                ))
-            } catch GitHubError.unauthorized {
-                auth.signOut()
-                return
-            } catch {
-                let msg = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-                groups.append(RepoGroup(
-                    repo: repo,
-                    pullRequests: [],
-                    totalCount: 0,
-                    error: msg
-                ))
+        do {
+            let batchResult = try await github.fetchOpenPRsBatched(repos: repos)
+
+            updateRateLimit(batchResult.rateLimit)
+
+            let groups: [RepoGroup] = repos.map { repo in
+                if let result = batchResult.results[repo] {
+                    return RepoGroup(repo: repo, pullRequests: result.pullRequests, totalCount: result.totalCount, error: nil)
+                } else if let errMsg = batchResult.errors[repo] {
+                    return RepoGroup(repo: repo, pullRequests: [], totalCount: 0, error: errMsg)
+                } else {
+                    return RepoGroup(repo: repo, pullRequests: [], totalCount: 0, error: nil)
+                }
+            }
+
+            state = .loaded(groups)
+            lastRefresh = Date()
+            PRCache.shared.save(groups)
+        } catch GitHubError.unauthorized {
+            auth.signOut()
+        } catch {
+            let msg = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            if case .loaded = state {} else { state = .error(msg) }
+            lastError = msg
+        }
+    }
+
+    private func doRefreshSingleRepo(_ repo: TrackedRepo) async {
+        do {
+            let result = try await github.fetchOpenPRs(in: repo)
+            guard case .loaded(var groups) = state else { return }
+            if let idx = groups.firstIndex(where: { $0.repo == repo }) {
+                groups[idx] = RepoGroup(repo: repo, pullRequests: result.pullRequests, totalCount: result.totalCount, error: nil)
+                state = .loaded(groups)
+                PRCache.shared.save(groups)
+            }
+        } catch GitHubError.unauthorized {
+            auth.signOut()
+        } catch {
+            let msg = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            if case .loaded(var groups) = state,
+               let idx = groups.firstIndex(where: { $0.repo == repo }) {
+                groups[idx] = RepoGroup(repo: repo, pullRequests: [], totalCount: 0, error: msg)
+                state = .loaded(groups)
             }
         }
-        state = .loaded(groups)
-        lastRefresh = Date()
     }
+
+    // MARK: - cache
+
+    private func loadCacheIfNeeded() {
+        guard case .signedOut = state else { return }
+        if let cached = PRCache.shared.load(), !cached.isEmpty {
+            state = .loaded(cached)
+        }
+    }
+
+    // MARK: - rate limit
+
+    private func updateRateLimit(_ rl: RateLimitInfo?) {
+        guard let rl else { return }
+        let threshold = max(100, 10 * rl.cost)
+        if rl.remaining < threshold {
+            rateLimitWarning = true
+            rateLimitPauseUntil = rl.resetAt
+        } else {
+            rateLimitWarning = false
+            rateLimitPauseUntil = nil
+        }
+    }
+
+    // MARK: - tick loop
 
     private func startTicking() {
         tickTask?.cancel()
         tickTask = Task { [weak self] in
             while !Task.isCancelled {
+                guard let self else { return }
+
+                // Honor rate-limit pause before sleeping for the normal interval.
+                if let pauseUntil = self.rateLimitPauseUntil, pauseUntil > Date() {
+                    let delay = max(0, pauseUntil.timeIntervalSinceNow)
+                    try? await Task.sleep(nanoseconds: UInt64(delay * 1e9))
+                    self.rateLimitWarning = false
+                    self.rateLimitPauseUntil = nil
+                    continue
+                }
+
                 let minutes = UserDefaults.standard.integer(forKey: "refreshIntervalMinutes")
                 let m = max(1, minutes == 0 ? 5 : minutes)
-                let ns = UInt64(m) * 60 * 1_000_000_000
-                try? await Task.sleep(nanoseconds: ns)
-                guard let self else { return }
+                try? await Task.sleep(nanoseconds: UInt64(m) * 60 * 1_000_000_000)
+                guard !Task.isCancelled else { return }
                 self.refresh()
             }
         }
+    }
+
+    private func handleWake() {
+        guard auth.state == .signedIn else { return }
+        let minutes = UserDefaults.standard.integer(forKey: "refreshIntervalMinutes")
+        let interval = TimeInterval(max(1, minutes == 0 ? 5 : minutes) * 60)
+        let intervalElapsed: Bool
+        if let last = lastRefresh {
+            intervalElapsed = Date().timeIntervalSince(last) >= interval
+        } else {
+            intervalElapsed = true
+        }
+        startTicking()
+        if intervalElapsed { refresh() }
     }
 }
