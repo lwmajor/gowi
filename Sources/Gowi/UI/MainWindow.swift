@@ -10,12 +10,19 @@ struct MainWindow: View {
         NavigationStack {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .navigationTitle(windowTitle)
                 .toolbar { toolbarContent }
         }
         .onAppear { markSeen() }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
             markSeen()
         }
+    }
+
+    private var windowTitle: String {
+        guard auth.state == .signedIn else { return "gowi" }
+        let total = totalPRs(groups)
+        return total > 0 ? "\(total) open" : "gowi"
     }
 
     // MARK: - content
@@ -57,18 +64,7 @@ struct MainWindow: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .principal) {
-            Image("GowiLogo")
-                .resizable()
-                .scaledToFit()
-                .frame(height: 24)
-        }
         if auth.state == .signedIn {
-            ToolbarItem(placement: .navigation) {
-                Text("\(totalPRs(groups)) open")
-                    .font(.headline)
-                    .monospacedDigit()
-            }
             ToolbarItem(placement: .primaryAction) {
                 Button { model.refresh() } label: {
                     ZStack(alignment: .topTrailing) {
