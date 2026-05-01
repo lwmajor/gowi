@@ -13,7 +13,7 @@ jobs:
     runs-on: macos-latest
 
     env:
-      DERIVED_DATA: ${{ runner.temp }}/DerivedData
+      SPM_CACHE: $HOME/.spm-cache
 
     steps:
       - name: Checkout
@@ -31,15 +31,15 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      # Cache DerivedData (includes SPM SourcePackages + built products).
-      - name: Cache DerivedData
+      # Cache Swift Package Manager artifacts.
+      # Falls back to a static suffix when Package.resolved is absent.
+      - name: Cache SwiftPM
         uses: actions/cache@v4
         with:
-          path: ${{ env.DERIVED_DATA }}
-          key: ${{ runner.os }}-deriveddata-${{ github.ref_name }}-${{ github.sha }}
+          path: ${{ env.SPM_CACHE }}
+          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') || 'no-spm' }}
           restore-keys: |
-            ${{ runner.os }}-deriveddata-${{ github.ref_name }}-
-            ${{ runner.os }}-deriveddata-
+            ${{ runner.os }}-spm-
 
       - name: Build + test (macOS)
         run: |
@@ -49,5 +49,5 @@ jobs:
             -scheme gowi \
             -configuration Debug \
             -destination 'platform=macOS' \
-            -derivedDataPath "${DERIVED_DATA}" \
+            -clonedSourcePackagesDirPath "${SPM_CACHE}" \
             clean test
