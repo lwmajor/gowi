@@ -36,7 +36,8 @@ struct MainWindow: View {
                     ProgressView("Loading…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 case .loaded(let groups):
-                    if groups.isEmpty || totalPRs(groups) == 0 {
+                    let hasErrors = groups.contains { $0.error != nil }
+                    if !hasErrors && (groups.isEmpty || totalPRs(groups) == 0) {
                         allClearState
                     } else {
                         PRListView(
