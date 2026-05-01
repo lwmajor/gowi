@@ -5,7 +5,7 @@ enum GitHubError: Error, LocalizedError {
     case unauthorized              // 401 from server; token is dead
     case samlRequired(URL)         // org enforces SAML SSO; token needs authorization
     case transport(String)
-    case http(Int, String)
+    case http(Int)
     case graphQL([String])         // non-empty errors array in response
     case decoding(String)
     case notFound(String)          // repo or resource missing / inaccessible
@@ -16,7 +16,7 @@ enum GitHubError: Error, LocalizedError {
         case .unauthorized:     return "GitHub rejected the access token. Please sign in again."
         case .samlRequired:     return "One or more repos require GitHub SSO authorization."
         case .transport(let s): return "Network error: \(s)"
-        case .http(let c, let s): return "HTTP \(c): \(s)"
+        case .http(let c):      return "GitHub returned HTTP \(c)."
         case .graphQL(let msgs): return msgs.joined(separator: "; ")
         case .decoding(let s):  return "Could not parse GitHub response: \(s)"
         case .notFound(let s):  return s
@@ -93,8 +93,7 @@ final class GitHubClient {
                 throw GitHubError.samlRequired(authURL ?? Config.tokenSettingsURL)
             }
             if !(200...299).contains(http.statusCode) {
-                let snippet = String(data: data.prefix(300), encoding: .utf8) ?? ""
-                throw GitHubError.http(http.statusCode, snippet)
+                throw GitHubError.http(http.statusCode)
             }
         }
         return data
@@ -135,11 +134,24 @@ final class GitHubClient {
 
     // MARK: - SAML helpers
 
-    /// Parses `X-GitHub-SSO: required; url=<URL>` and returns the URL component.
+    /// Parses `X-GitHub-SSO: required; url=<URL>` and returns the URL component
+    /// only when it points to an `https://...github.com` resource. Anything
+    /// else (different scheme, different host, malformed) returns nil so the
+    /// caller falls back to a known-safe URL.
     static func parseSSOHeader(_ header: String?) -> URL? {
-        guard let header,
-              let urlRange = header.range(of: "url=") else { return nil }
-        return URL(string: String(header[urlRange.upperBound...]))
+        guard let header else { return nil }
+        let urlValue = header
+            .split(separator: ";")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .first { $0.hasPrefix("url=") }
+            .map { String($0.dropFirst("url=".count)) }
+        guard let urlValue,
+              let url = URL(string: urlValue),
+              url.scheme == "https",
+              let host = url.host,
+              host == "github.com" || host.hasSuffix(".github.com")
+        else { return nil }
+        return url
     }
 
     static func isSAMLError(_ message: String) -> Bool {
