@@ -156,8 +156,7 @@ struct DeviceFlowClient {
         do {
             let (data, response) = try await session.data(for: req)
             if let http = response as? HTTPURLResponse, !(200...299).contains(http.statusCode) {
-                let snippet = String(data: data.prefix(200), encoding: .utf8) ?? ""
-                throw DeviceFlowError.unexpected("HTTP \(http.statusCode): \(snippet)")
+                throw DeviceFlowError.unexpected("GitHub returned HTTP \(http.statusCode).")
             }
             return data
         } catch let e as DeviceFlowError {
