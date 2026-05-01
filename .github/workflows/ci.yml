@@ -13,8 +13,8 @@ jobs:
     runs-on: macos-latest
 
     env:
-      DERIVED_DATA: ${{ runner.temp }}/DerivedData
-      SPM_CACHE: ${{ runner.temp }}/spm
+      DERIVED_DATA: $HOME/DerivedData
+      SPM_CACHE: $HOME/.spm-cache
 
     steps:
       - name: Checkout
