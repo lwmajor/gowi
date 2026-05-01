@@ -1,5 +1,4 @@
 import XCTest
-@testable import Gowi
 
 final class BatchFetcherTests: XCTestCase {
 
