@@ -47,6 +47,65 @@ final class RepoStoreTests: XCTestCase {
         XCTAssertEqual(store.repos, [b])
     }
 
+    func testRemoveNonExistentIsNoop() {
+        let a = TrackedRepo(owner: "a", name: "x")
+        let b = TrackedRepo(owner: "b", name: "y")
+        store.add(a)
+        store.remove(b)
+        XCTAssertEqual(store.repos, [a])
+    }
+
+    func testRemoveLastLeavesEmpty() {
+        let repo = TrackedRepo(owner: "apple", name: "swift")
+        store.add(repo)
+        store.remove(repo)
+        XCTAssertTrue(store.repos.isEmpty)
+    }
+
+    func testRemovePersistedAcrossReload() {
+        let a = TrackedRepo(owner: "apple", name: "swift")
+        let b = TrackedRepo(owner: "apple", name: "swift-package-manager")
+        store.add(a); store.add(b)
+        store.remove(a)
+        let reloaded = RepoStore(defaults: defaults)
+        XCTAssertEqual(reloaded.repos, [b])
+    }
+
+    func testRemoveLastPersistedAcrossReload() {
+        let repo = TrackedRepo(owner: "apple", name: "swift")
+        store.add(repo)
+        store.remove(repo)
+        let reloaded = RepoStore(defaults: defaults)
+        XCTAssertTrue(reloaded.repos.isEmpty)
+    }
+
+    func testRemoveAtOffset() {
+        let a = TrackedRepo(owner: "a", name: "x")
+        let b = TrackedRepo(owner: "b", name: "y")
+        let c = TrackedRepo(owner: "c", name: "z")
+        store.add(a); store.add(b); store.add(c)
+        store.remove(at: IndexSet(integer: 1))
+        XCTAssertEqual(store.repos, [a, c])
+    }
+
+    func testRemoveAtMultipleOffsets() {
+        let a = TrackedRepo(owner: "a", name: "x")
+        let b = TrackedRepo(owner: "b", name: "y")
+        let c = TrackedRepo(owner: "c", name: "z")
+        store.add(a); store.add(b); store.add(c)
+        store.remove(at: IndexSet([0, 2]))
+        XCTAssertEqual(store.repos, [b])
+    }
+
+    func testRemoveAtPersistedAcrossReload() {
+        let a = TrackedRepo(owner: "a", name: "x")
+        let b = TrackedRepo(owner: "b", name: "y")
+        store.add(a); store.add(b)
+        store.remove(at: IndexSet(integer: 0))
+        let reloaded = RepoStore(defaults: defaults)
+        XCTAssertEqual(reloaded.repos, [b])
+    }
+
     func testMove() {
         let a = TrackedRepo(owner: "a", name: "x")
         let b = TrackedRepo(owner: "b", name: "y")
