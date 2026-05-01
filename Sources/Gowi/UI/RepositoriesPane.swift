@@ -4,13 +4,14 @@ struct RepositoriesPane: View {
     @EnvironmentObject private var store: RepoStore
     @EnvironmentObject private var model: AppModel
     @State private var showingAdd = false
+    @State private var selectedRepo: TrackedRepo.ID?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if store.repos.isEmpty {
                 emptyState
             } else {
-                List {
+                List(selection: $selectedRepo) {
                     ForEach(store.repos) { repo in
                         HStack {
                             Image(systemName: "folder")
@@ -18,19 +19,40 @@ struct RepositoriesPane: View {
                             Text(repo.nameWithOwner)
                             Spacer()
                         }
+                        .tag(repo.id)
                     }
                     .onMove { store.move(fromOffsets: $0, toOffset: $1) }
                     .onDelete { store.remove(at: $0) }
                 }
                 .frame(minHeight: 180)
+                .onChange(of: store.repos) { _, repos in
+                    if let id = selectedRepo, !repos.contains(where: { $0.id == id }) {
+                        selectedRepo = nil
+                    }
+                }
             }
 
-            HStack {
+            HStack(spacing: 4) {
                 Button {
                     showingAdd = true
                 } label: {
-                    Label("Add Repo", systemImage: "plus")
+                    Image(systemName: "plus")
                 }
+                .buttonStyle(.borderless)
+                .help("Add repository")
+
+                Button {
+                    if let id = selectedRepo,
+                       let repo = store.repos.first(where: { $0.id == id }) {
+                        store.remove(repo)
+                    }
+                } label: {
+                    Image(systemName: "minus")
+                }
+                .buttonStyle(.borderless)
+                .disabled(selectedRepo == nil)
+                .help("Remove selected repository")
+
                 Spacer()
                 Text("\(store.repos.count) tracked")
                     .font(.caption)
