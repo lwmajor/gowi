@@ -94,7 +94,7 @@ extension GitHubClient {
             throw GitHubError.decoding("Invalid JSON in batch response")
         }
 
-        // Check for complexity errors; also build per-alias error map.
+        // Check for complexity and SAML errors; also build per-alias error map.
         var aliasErrors: [String: String] = [:]
         if let errors = json["errors"] as? [[String: Any]] {
             let messages = errors.compactMap { $0["message"] as? String }
@@ -105,9 +105,20 @@ extension GitHubClient {
                 result.isComplexityError = true
                 return result
             }
+            // Top-level SAML errors have no path and block the whole request.
+            let topLevelSAML = errors.contains { err in
+                (err["path"] as? [String]) == nil &&
+                GitHubClient.isSAMLError((err["message"] as? String) ?? "")
+            }
+            if topLevelSAML {
+                throw GitHubError.samlRequired(Config.tokenSettingsURL)
+            }
             for error in errors {
                 guard let path = error["path"] as? [String], let alias = path.first else { continue }
-                aliasErrors[alias] = (error["message"] as? String) ?? "Unknown error"
+                let msg = (error["message"] as? String) ?? "Unknown error"
+                aliasErrors[alias] = GitHubClient.isSAMLError(msg)
+                    ? "SSO authorization required — authorize your token on GitHub."
+                    : msg
             }
         }
 

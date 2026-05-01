@@ -25,6 +25,7 @@ final class AppModel: ObservableObject {
     @Published var isRefreshing: Bool = false
     @Published var lastRefresh: Date?
     @Published var rateLimitWarning: Bool = false
+    @Published var samlAuthURL: URL?
 
     let github: GitHubClient
     private let auth: AuthService
@@ -56,6 +57,7 @@ final class AppModel: ObservableObject {
                     self.tickTask?.cancel()
                     self.rateLimitWarning = false
                     self.rateLimitPauseUntil = nil
+                    self.samlAuthURL = nil
                 }
             }
             .store(in: &cancellables)
@@ -165,6 +167,8 @@ final class AppModel: ObservableObject {
             PRCache.shared.save(groups)
         } catch GitHubError.unauthorized {
             auth.signOut()
+        } catch GitHubError.samlRequired(let url) {
+            samlAuthURL = url
         } catch {
             let msg = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             if case .loaded = state {} else { state = .error(msg) }
@@ -183,6 +187,8 @@ final class AppModel: ObservableObject {
             }
         } catch GitHubError.unauthorized {
             auth.signOut()
+        } catch GitHubError.samlRequired(let url) {
+            samlAuthURL = url
         } catch {
             let msg = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
             if case .loaded(var groups) = state,

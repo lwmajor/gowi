@@ -23,4 +23,8 @@ enum Config {
 
     /// GitHub GraphQL endpoint.
     static let graphQLURL = URL(string: "https://api.github.com/graphql")!
+
+    /// GitHub token settings page — fallback destination when a SAML auth URL
+    /// isn't available from response headers.
+    static let tokenSettingsURL = URL(string: "https://github.com/settings/tokens")!
 }

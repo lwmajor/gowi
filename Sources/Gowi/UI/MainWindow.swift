@@ -27,24 +27,29 @@ struct MainWindow: View {
         } else if store.repos.isEmpty {
             noReposState
         } else {
-            switch model.state {
-            case .signedOut, .loading:
-                ProgressView("Loading…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            case .loaded(let groups):
-                if groups.isEmpty || totalPRs(groups) == 0 {
-                    allClearState
-                } else {
-                    PRListView(
-                        groups: groups,
-                        onRetry: { repo in
-                            if let repo { model.refreshSingleRepo(repo) } else { model.refresh() }
-                        },
-                        onPullRefresh: { await model.performRefresh() }
-                    )
+            VStack(spacing: 0) {
+                if let authURL = model.samlAuthURL {
+                    samlBanner(url: authURL)
                 }
-            case .error(let msg):
-                errorState(msg)
+                switch model.state {
+                case .signedOut, .loading:
+                    ProgressView("Loading…")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                case .loaded(let groups):
+                    if groups.isEmpty || totalPRs(groups) == 0 {
+                        allClearState
+                    } else {
+                        PRListView(
+                            groups: groups,
+                            onRetry: { repo in
+                                if let repo { model.refreshSingleRepo(repo) } else { model.refresh() }
+                            },
+                            onPullRefresh: { await model.performRefresh() }
+                        )
+                    }
+                case .error(let msg):
+                    errorState(msg)
+                }
             }
         }
     }
@@ -85,6 +90,44 @@ struct MainWindow: View {
                 }
                 .help("Settings")
             }
+        }
+    }
+
+    // MARK: - SAML banner
+
+    private func samlBanner(url: URL) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "lock.shield")
+                .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("GitHub SSO authorization required")
+                    .font(.callout).bold()
+                Text("Your token needs to be authorized for your organization.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Authorize Token") {
+                NSWorkspace.shared.open(url)
+                model.samlAuthURL = nil
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+            Button {
+                model.samlAuthURL = nil
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.secondary)
+            .help("Dismiss")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.orange.opacity(0.12))
+        .overlay(alignment: .bottom) {
+            Divider()
         }
     }
 

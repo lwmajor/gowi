@@ -3,6 +3,7 @@ import Foundation
 enum GitHubError: Error, LocalizedError {
     case notAuthenticated          // no token at all
     case unauthorized              // 401 from server; token is dead
+    case samlRequired(URL)         // org enforces SAML SSO; token needs authorization
     case transport(String)
     case http(Int, String)
     case graphQL([String])         // non-empty errors array in response
@@ -13,6 +14,7 @@ enum GitHubError: Error, LocalizedError {
         switch self {
         case .notAuthenticated: return "Not signed in."
         case .unauthorized:     return "GitHub rejected the access token. Please sign in again."
+        case .samlRequired:     return "One or more repos require GitHub SSO authorization."
         case .transport(let s): return "Network error: \(s)"
         case .http(let c, let s): return "HTTP \(c): \(s)"
         case .graphQL(let msgs): return msgs.joined(separator: "; ")
@@ -84,6 +86,12 @@ final class GitHubClient {
         }
         if let http = response as? HTTPURLResponse {
             if http.statusCode == 401 { throw GitHubError.unauthorized }
+            if http.statusCode == 403 {
+                // GitHub signals SAML SSO enforcement via this header on org-protected resources.
+                // Format: "required; url=https://github.com/orgs/ORG/sso?authorization_request=..."
+                let authURL = Self.parseSSOHeader(http.value(forHTTPHeaderField: "X-GitHub-SSO"))
+                throw GitHubError.samlRequired(authURL ?? Config.tokenSettingsURL)
+            }
             if !(200...299).contains(http.statusCode) {
                 let snippet = String(data: data.prefix(300), encoding: .utf8) ?? ""
                 throw GitHubError.http(http.statusCode, snippet)
@@ -114,12 +122,30 @@ final class GitHubClient {
             if errs.contains(where: { $0.type == "NOT_FOUND" }) {
                 throw GitHubError.notFound(errs.first?.message ?? "Not found")
             }
+            if errs.contains(where: { Self.isSAMLError($0.message) }) {
+                throw GitHubError.samlRequired(Config.tokenSettingsURL)
+            }
             throw GitHubError.graphQL(errs.map(\.message))
         }
         guard let data = envelope.data else {
             throw GitHubError.decoding("GraphQL response had no data and no errors.")
         }
         return data
+    }
+
+    // MARK: - SAML helpers
+
+    /// Parses `X-GitHub-SSO: required; url=<URL>` and returns the URL component.
+    static func parseSSOHeader(_ header: String?) -> URL? {
+        guard let header,
+              let urlRange = header.range(of: "url=") else { return nil }
+        return URL(string: String(header[urlRange.upperBound...]))
+    }
+
+    static func isSAMLError(_ message: String) -> Bool {
+        message.localizedCaseInsensitiveContains("saml") ||
+        message.contains("organization SAML enforcement") ||
+        message.contains("grant your OAuth token access to this organization")
     }
 
     // MARK: - raw query (batch / partial-error handling)
