@@ -15,6 +15,8 @@ struct RepositoriesPane: View {
                 List(selection: $selectedRepo) {
                     ForEach(store.repos) { repo in
                         HStack {
+                            Image(systemName: "line.3.horizontal")
+                                .foregroundStyle(.tertiary)
                             Image(systemName: "folder")
                                 .foregroundStyle(.secondary)
                             Text(repo.nameWithOwner)

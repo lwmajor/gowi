@@ -79,6 +79,12 @@ Three SwiftUI scenes declared in `GowiApp`:
 
 `MainWindow` is the primary decision view — it switches between `SignInView`, empty/error/loading states, and `PRListView` based on `auth.state` and `model.state`. The SAML banner is injected above the content stack when `model.samlAuthURL != nil`.
 
+## Testing
+
+`GowiTests` compiles `Sources/Gowi` as direct source files (see `project.yml`) — there is no separate `Gowi` module. **Do not use `@testable import Gowi`**; it will fail with "no such module" in CI. Test files only need `import XCTest` plus any framework imports (`UserNotifications`, etc.). All production types are in scope automatically.
+
+For side-effecting dependencies (network, notification posting, keychain), extract a one-method protocol in the production file and conform the real type via an empty extension. Inject a spy in tests via the same init parameter. Use isolated `UserDefaults` suites (unique suite name per `setUp`) to avoid test bleed.
+
 ## Commit conventions
 
 Per `TASKS.md`, prefix commits with the area: `scaffold:`, `auth:`, `settings:`, `net:`, `ui:`, `menu:`, `refresh:`, `cache:`, `polish:`, `dist:`, `test:`, `docs:`. Each commit should build and leave the app runnable.
