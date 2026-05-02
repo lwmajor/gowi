@@ -30,14 +30,16 @@ final class AppModel: ObservableObject {
     let github: GitHubClient
     private let auth: AuthService
     private let store: RepoStore
+    private let notifications: NotificationService
     private var cancellables = Set<AnyCancellable>()
     private var refreshTask: Task<Void, Never>?
     private var tickTask: Task<Void, Never>?
     private var rateLimitPauseUntil: Date?
 
-    init(auth: AuthService, store: RepoStore) {
+    init(auth: AuthService, store: RepoStore, notifications: NotificationService) {
         self.auth = auth
         self.store = store
+        self.notifications = notifications
         self.github = GitHubClient(tokenProvider: { [weak auth] in auth?.accessToken })
 
         auth.$state
@@ -164,6 +166,7 @@ final class AppModel: ObservableObject {
 
             state = .loaded(groups)
             lastRefresh = Date()
+            notifications.process(groups: groups)
             PRCache.shared.save(groups)
         } catch GitHubError.unauthorized {
             auth.signOut()
@@ -183,6 +186,7 @@ final class AppModel: ObservableObject {
             if let idx = groups.firstIndex(where: { $0.repo == repo }) {
                 groups[idx] = RepoGroup(repo: repo, pullRequests: result.pullRequests, totalCount: result.totalCount, error: nil)
                 state = .loaded(groups)
+                notifications.process(groups: [groups[idx]])
                 PRCache.shared.save(groups)
             }
         } catch GitHubError.unauthorized {

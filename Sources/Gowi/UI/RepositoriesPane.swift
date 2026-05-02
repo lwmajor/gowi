@@ -15,6 +15,7 @@ struct RepositoriesPane: View {
                 List(selection: $selectedRepo) {
                     ForEach(store.repos) { repo in
                         HStack {
+                            NotifyToggle(repo: repo)
                             Image(systemName: "folder")
                                 .foregroundStyle(.secondary)
                             Text(repo.nameWithOwner)
@@ -101,6 +102,26 @@ struct RepositoriesPane: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 32)
+    }
+}
+
+private struct NotifyToggle: View {
+    @EnvironmentObject private var notifications: NotificationService
+    let repo: TrackedRepo
+
+    var body: some View {
+        let isOn = Binding<Bool>(
+            get: { notifications.isEnabled(repo) },
+            set: { newValue in
+                Task { await notifications.setEnabled(newValue, for: repo) }
+            }
+        )
+        Toggle(isOn: isOn) {
+            Image(systemName: notifications.isEnabled(repo) ? "bell.fill" : "bell.slash")
+        }
+        .toggleStyle(.button)
+        .buttonStyle(.borderless)
+        .help(notifications.isEnabled(repo) ? "Notifications on for this repo" : "Notify on new PRs")
     }
 }
 
