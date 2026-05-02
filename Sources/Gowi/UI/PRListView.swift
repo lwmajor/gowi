@@ -26,6 +26,15 @@ struct PRListView: View {
                     body(for: group)
                 } label: {
                     repoHeader(group)
+                        .onTapGesture {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                if collapsed.contains(group.id) {
+                                    collapsed.remove(group.id)
+                                } else {
+                                    collapsed.insert(group.id)
+                                }
+                            }
+                        }
                 }
             }
             .onMove { model.moveRepo(fromOffsets: $0, toOffset: $1) }
