@@ -3,24 +3,52 @@ import AppKit
 import Combine
 import UserNotifications
 
+// MARK: - Testability protocol
+
+// Covers the subset of UNUserNotificationCenter operations this service needs,
+// so tests can inject a stub without requiring a live app bundle.
+protocol NotificationCenterProtocol: AnyObject {
+    var delegate: UNUserNotificationCenterDelegate? { get set }
+    func requestAuthorization(options: UNAuthorizationOptions) async throws -> Bool
+    func currentAuthorizationStatus() async -> UNAuthorizationStatus
+    func add(_ request: UNNotificationRequest)
+}
+
+extension UNUserNotificationCenter: NotificationCenterProtocol {
+    func currentAuthorizationStatus() async -> UNAuthorizationStatus {
+        await notificationSettings().authorizationStatus
+    }
+
+    func add(_ request: UNNotificationRequest) {
+        add(request, withCompletionHandler: nil)
+    }
+}
+
 @MainActor
 final class NotificationService: NSObject, ObservableObject {
     @Published private(set) var enabledRepos: Set<String> = []
     @Published private(set) var authorizationStatus: UNAuthorizationStatus = .notDetermined
 
+    var isAuthorized: Bool {
+        switch authorizationStatus {
+        case .authorized, .provisional, .ephemeral: return true
+        default: return false
+        }
+    }
+
     private let defaults: UserDefaults
-    private let center: UNUserNotificationCenter
-    private var seenPRIds: [String: Set<String>] = [:]
-    private var seededRepos: Set<String> = []
+    private let center: NotificationCenterProtocol
+    var seenPRIds: [String: Set<String>] = [:]
+    var seededRepos: Set<String> = []
     private var cancellables = Set<AnyCancellable>()
 
     private enum Keys {
-        static let enabled = "notifyOnNewPR"
+        static let enabled = "notificationEnabledRepos"
         static let seenIds = "seenPRIds"
         static let seeded = "seededRepos"
     }
 
-    init(store: RepoStore, defaults: UserDefaults = .standard, center: UNUserNotificationCenter = .current()) {
+    init(store: RepoStore, defaults: UserDefaults = .standard, center: NotificationCenterProtocol = UNUserNotificationCenter.current()) {
         self.defaults = defaults
         self.center = center
         super.init()
@@ -87,23 +115,21 @@ final class NotificationService: NSObject, ObservableObject {
     }
 
     func refreshAuthorizationStatus() async {
-        let settings = await center.notificationSettings()
-        authorizationStatus = settings.authorizationStatus
+        authorizationStatus = await center.currentAuthorizationStatus()
     }
 
-    // MARK: - Test
+    // MARK: - Test notification
 
     func sendTestNotification() {
         let content = UNMutableNotificationContent()
         content.title = "gowi"
         content.body = "Test notification — you'll see one of these when a new PR is raised."
         content.sound = .default
-        let req = UNNotificationRequest(
+        center.add(UNNotificationRequest(
             identifier: "test-\(UUID().uuidString)",
             content: content,
             trigger: nil
-        )
-        center.add(req)
+        ))
     }
 
     // MARK: - Diff & post
@@ -133,9 +159,7 @@ final class NotificationService: NSObject, ObservableObject {
                 }
             }
 
-            // Union with previous so a PR that scrolls past the 50-item window
-            // and later returns isn't re-notified.
-            seenPRIds[repoID] = currentIds.union(seenPRIds[repoID] ?? [])
+            seenPRIds[repoID] = currentIds
             didMutate = true
         }
 
@@ -145,12 +169,11 @@ final class NotificationService: NSObject, ObservableObject {
     // MARK: - Posting
 
     private func postNotifications(for prs: [PullRequest], repo: TrackedRepo) {
+        // >3 intentionally exclusive: 4+ get a summary, 1–3 get individual banners.
         if prs.count > 3 {
             postSummary(count: prs.count, repo: repo)
         } else {
-            for pr in prs {
-                postSingle(pr: pr, repo: repo)
-            }
+            for pr in prs { postSingle(pr: pr, repo: repo) }
         }
     }
 
@@ -161,8 +184,7 @@ final class NotificationService: NSObject, ObservableObject {
         content.body = "\(author) raised a new PR — \(pr.title)"
         content.sound = .default
         content.userInfo = ["url": pr.url.absoluteString]
-        let req = UNNotificationRequest(identifier: pr.id, content: content, trigger: nil)
-        center.add(req)
+        center.add(UNNotificationRequest(identifier: pr.id, content: content, trigger: nil))
     }
 
     private func postSummary(count: Int, repo: TrackedRepo) {
@@ -172,8 +194,7 @@ final class NotificationService: NSObject, ObservableObject {
         content.sound = .default
         content.userInfo = ["url": repo.pullsURL.absoluteString]
         let id = "summary-\(repo.id)-\(Int(Date().timeIntervalSince1970))"
-        let req = UNNotificationRequest(identifier: id, content: content, trigger: nil)
-        center.add(req)
+        center.add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
     }
 
     // MARK: - Cleanup

@@ -38,7 +38,7 @@ struct GeneralPane: View {
                 Button("Send test notification") {
                     notifications.sendTestNotification()
                 }
-                .disabled(notifications.authorizationStatus == .denied)
+                .disabled(!notifications.isAuthorized)
             }
         }
         .padding()
