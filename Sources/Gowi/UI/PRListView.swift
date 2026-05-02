@@ -12,7 +12,7 @@ struct PRListView: View {
     var body: some View {
         List {
             ForEach(groups) { group in
-                DisclosureGroup(
+                Section(
                     isExpanded: Binding(
                         get: { !collapsed.contains(group.id) },
                         set: { expanded in
@@ -24,17 +24,8 @@ struct PRListView: View {
                     )
                 ) {
                     body(for: group)
-                } label: {
+                } header: {
                     repoHeader(group)
-                        .onTapGesture {
-                            withAnimation(.easeInOut(duration: 0.15)) {
-                                if collapsed.contains(group.id) {
-                                    collapsed.remove(group.id)
-                                } else {
-                                    collapsed.insert(group.id)
-                                }
-                            }
-                        }
                 }
             }
             .onMove { model.moveRepo(fromOffsets: $0, toOffset: $1) }
@@ -79,21 +70,33 @@ struct PRListView: View {
     }
 
     private func repoHeader(_ group: RepoGroup) -> some View {
-        HStack(spacing: 8) {
-            Text(group.repo.nameWithOwner)
-                .font(.subheadline).bold()
-                .foregroundStyle(.secondary)
-
-            Spacer()
-
-            if group.error == nil {
-                Text("\(group.totalCount)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
+        let isCollapsed = collapsed.contains(group.id)
+        return Button {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                if isCollapsed { collapsed.remove(group.id) }
+                else { collapsed.insert(group.id) }
             }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "chevron.right")
+                    .font(.caption.bold())
+                    .rotationEffect(.degrees(isCollapsed ? 0 : 90))
+                    .foregroundStyle(.secondary)
+                Text(group.repo.nameWithOwner)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Spacer()
+                if group.error == nil {
+                    Text("\(group.totalCount)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
+            }
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
         }
-        .contentShape(Rectangle())
+        .buttonStyle(.plain)
         .help("Right-click to open in browser")
         .contextMenu {
             Button("Open \(group.repo.nameWithOwner) in Browser") {
