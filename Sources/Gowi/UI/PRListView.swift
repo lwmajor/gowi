@@ -1,6 +1,17 @@
 import SwiftUI
 import AppKit
 
+/// Hides DisclosureGroup's built-in system chevron so we can supply our own
+/// animated one. The List still treats this as an outline group for drag-and-drop.
+private struct NoSystemChevronStyle: DisclosureGroupStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+        if configuration.isExpanded {
+            configuration.content
+        }
+    }
+}
+
 struct PRListView: View {
     let groups: [RepoGroup]
     let onRetry: (TrackedRepo?) -> Void
@@ -12,7 +23,7 @@ struct PRListView: View {
     var body: some View {
         List {
             ForEach(groups) { group in
-                Section(
+                DisclosureGroup(
                     isExpanded: Binding(
                         get: { !collapsed.contains(group.id) },
                         set: { expanded in
@@ -24,9 +35,10 @@ struct PRListView: View {
                     )
                 ) {
                     body(for: group)
-                } header: {
+                } label: {
                     repoHeader(group)
                 }
+                .disclosureGroupStyle(NoSystemChevronStyle())
             }
             .onMove { model.moveRepo(fromOffsets: $0, toOffset: $1) }
         }
@@ -34,21 +46,26 @@ struct PRListView: View {
         .refreshable { await onPullRefresh() }
     }
 
+    private static let childRowInsets = EdgeInsets(top: 2, leading: -20, bottom: 2, trailing: 4)
+
     @ViewBuilder
     private func body(for group: RepoGroup) -> some View {
         if let error = group.error {
             errorRow(error, repo: group.repo)
+                .listRowInsets(Self.childRowInsets)
         } else if group.pullRequests.isEmpty {
             Text("No open PRs")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+                .listRowInsets(Self.childRowInsets)
         } else {
             ForEach(group.pullRequests) { pr in
                 PRRow(pr: pr)
-                    .listRowInsets(EdgeInsets(top: 2, leading: 4, bottom: 2, trailing: 4))
+                    .listRowInsets(Self.childRowInsets)
             }
             if group.totalCount > group.pullRequests.count {
                 moreFooter(for: group)
+                    .listRowInsets(Self.childRowInsets)
             }
         }
     }
@@ -71,32 +88,32 @@ struct PRListView: View {
 
     private func repoHeader(_ group: RepoGroup) -> some View {
         let isCollapsed = collapsed.contains(group.id)
-        return Button {
-            withAnimation(.easeInOut(duration: 0.15)) {
-                if isCollapsed { collapsed.remove(group.id) }
-                else { collapsed.insert(group.id) }
-            }
-        } label: {
-            HStack(spacing: 6) {
+        return HStack(spacing: 6) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    if isCollapsed { collapsed.remove(group.id) }
+                    else { collapsed.insert(group.id) }
+                }
+            } label: {
                 Image(systemName: "chevron.right")
                     .font(.caption.bold())
                     .rotationEffect(.degrees(isCollapsed ? 0 : 90))
                     .foregroundStyle(.secondary)
-                Text(group.repo.nameWithOwner)
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Spacer()
-                if group.error == nil {
-                    Text("\(group.totalCount)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                }
             }
-            .padding(.vertical, 4)
-            .contentShape(Rectangle())
+            .buttonStyle(.plain)
+
+            Text(group.repo.nameWithOwner)
+                .font(.headline)
+                .foregroundStyle(.primary)
+            Spacer()
+            if group.error == nil {
+                Text("\(group.totalCount)")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
         }
-        .buttonStyle(.plain)
+        .padding(.vertical, 4)
         .help("Right-click to open in browser")
         .contextMenu {
             Button("Open \(group.repo.nameWithOwner) in Browser") {
