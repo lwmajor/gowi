@@ -85,6 +85,8 @@ Three SwiftUI scenes declared in `GowiApp`:
 
 ## Testing
 
+`GowiTests` compiles `Sources/Gowi` as direct source files (see `project.yml`) — there is no separate `Gowi` module. **Do not use `@testable import Gowi`**; it will fail with "no such module" in CI. Test files only need `import XCTest` plus any framework imports (`UserNotifications`, etc.). All production types are in scope automatically.
+
 Each service with non-trivial state-machine logic ships with `Tests/GowiTests/<ServiceName>Tests.swift`. Use isolated `UserDefaults` suites (unique suite name per `setUp`) and inject spy doubles via the same injectable parameters the production code exposes. Tests should cover:
 
 - Initial state and persistence across reload

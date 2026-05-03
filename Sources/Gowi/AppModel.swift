@@ -35,6 +35,7 @@ final class AppModel: ObservableObject {
     private var refreshTask: Task<Void, Never>?
     private var tickTask: Task<Void, Never>?
     private var rateLimitPauseUntil: Date?
+    private var suppressNextStoreRefresh = false
 
     init(auth: AuthService, store: RepoStore, notifications: NotificationService) {
         self.auth = auth
@@ -68,7 +69,12 @@ final class AppModel: ObservableObject {
             .dropFirst()
             .removeDuplicates()
             .sink { [weak self] _ in
-                self?.refresh()
+                guard let self else { return }
+                if self.suppressNextStoreRefresh {
+                    self.suppressNextStoreRefresh = false
+                    return
+                }
+                self.refresh()
             }
             .store(in: &cancellables)
 
@@ -132,6 +138,16 @@ final class AppModel: ObservableObject {
             guard let self else { return }
             await self.doRefreshSingleRepo(repo)
         }
+    }
+
+    /// Reorder repos without triggering a network re-fetch.
+    /// Updates the displayed groups immediately and persists the new order to the store.
+    func moveRepo(fromOffsets: IndexSet, toOffset: Int) {
+        guard case .loaded(var groups) = state else { return }
+        groups.move(fromOffsets: fromOffsets, toOffset: toOffset)
+        state = .loaded(groups)
+        suppressNextStoreRefresh = true
+        store.move(fromOffsets: fromOffsets, toOffset: toOffset)
     }
 
     // MARK: - private refresh

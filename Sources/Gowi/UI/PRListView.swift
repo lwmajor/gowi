@@ -1,44 +1,71 @@
 import SwiftUI
 import AppKit
 
+/// Hides DisclosureGroup's built-in system chevron so we can supply our own
+/// animated one. The List still treats this as an outline group for drag-and-drop.
+private struct NoSystemChevronStyle: DisclosureGroupStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+        if configuration.isExpanded {
+            configuration.content
+        }
+    }
+}
+
 struct PRListView: View {
     let groups: [RepoGroup]
     let onRetry: (TrackedRepo?) -> Void
     let onPullRefresh: () async -> Void
 
+    @EnvironmentObject private var model: AppModel
     @State private var collapsed: Set<String> = []
 
     var body: some View {
         List {
             ForEach(groups) { group in
-                Section {
-                    if !collapsed.contains(group.id) {
-                        body(for: group)
-                    }
-                } header: {
+                DisclosureGroup(
+                    isExpanded: Binding(
+                        get: { !collapsed.contains(group.id) },
+                        set: { expanded in
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                if expanded { collapsed.remove(group.id) }
+                                else { collapsed.insert(group.id) }
+                            }
+                        }
+                    )
+                ) {
+                    body(for: group)
+                } label: {
                     repoHeader(group)
                 }
+                .disclosureGroupStyle(NoSystemChevronStyle())
             }
+            .onMove { model.moveRepo(fromOffsets: $0, toOffset: $1) }
         }
         .listStyle(.inset)
         .refreshable { await onPullRefresh() }
     }
 
+    private static let childRowInsets = EdgeInsets(top: 2, leading: -20, bottom: 2, trailing: 4)
+
     @ViewBuilder
     private func body(for group: RepoGroup) -> some View {
         if let error = group.error {
             errorRow(error, repo: group.repo)
+                .listRowInsets(Self.childRowInsets)
         } else if group.pullRequests.isEmpty {
             Text("No open PRs")
                 .font(.callout)
                 .foregroundStyle(.secondary)
+                .listRowInsets(Self.childRowInsets)
         } else {
             ForEach(group.pullRequests) { pr in
                 PRRow(pr: pr)
-                    .listRowInsets(EdgeInsets(top: 2, leading: 4, bottom: 2, trailing: 4))
+                    .listRowInsets(Self.childRowInsets)
             }
             if group.totalCount > group.pullRequests.count {
                 moreFooter(for: group)
+                    .listRowInsets(Self.childRowInsets)
             }
         }
     }
@@ -61,7 +88,7 @@ struct PRListView: View {
 
     private func repoHeader(_ group: RepoGroup) -> some View {
         let isCollapsed = collapsed.contains(group.id)
-        return HStack(spacing: 8) {
+        return HStack(spacing: 6) {
             Button {
                 withAnimation(.easeInOut(duration: 0.15)) {
                     if isCollapsed { collapsed.remove(group.id) }
@@ -72,25 +99,25 @@ struct PRListView: View {
                     .font(.caption.bold())
                     .rotationEffect(.degrees(isCollapsed ? 0 : 90))
                     .foregroundStyle(.secondary)
-                    .frame(width: 14, height: 14)
-                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(isCollapsed ? "Expand" : "Collapse")
 
             Text(group.repo.nameWithOwner)
-                .font(.subheadline).bold()
-                .foregroundStyle(.secondary)
-                .onTapGesture { NSWorkspace.shared.open(group.repo.pullsURL) }
-                .help("Open \(group.repo.nameWithOwner) pull requests in browser")
-
+                .font(.headline)
+                .foregroundStyle(.primary)
             Spacer()
-
             if group.error == nil {
                 Text("\(group.totalCount)")
-                    .font(.caption)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
+            }
+        }
+        .padding(.vertical, 4)
+        .help("Right-click to open in browser")
+        .contextMenu {
+            Button("Open \(group.repo.nameWithOwner) in Browser") {
+                NSWorkspace.shared.open(group.repo.pullsURL)
             }
         }
     }
