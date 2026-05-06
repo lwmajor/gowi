@@ -18,9 +18,9 @@
       <sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>
       <enclosure
         url="https://github.com/lwmajor/gowi/releases/download/v0.1.0/gowi-0.1.0.dmg"
-        length="REPLACE_WITH_FILESIZE_IN_BYTES"
+        length="4144181"
         type="application/octet-stream"
-        sparkle:edSignature="REPLACE_WITH_EDDSA_SIGNATURE"
+        sparkle:edSignature="/jiDcSBGnNVbWL8IrHBnupboHOsPwGt8SOxcOcQMCJBOQgdUjDiF0mOHgQqrp88epCb79W5SoeGXUunPw6IRBg=="
       />
     </item>
   </channel>
