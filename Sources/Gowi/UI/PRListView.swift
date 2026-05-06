@@ -57,7 +57,8 @@ struct PRListView: View {
             Text("No open PRs")
                 .font(.callout)
                 .foregroundStyle(.secondary)
-                .listRowInsets(Self.childRowInsets)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .listRowInsets(EdgeInsets(top: 2, leading: 0, bottom: 2, trailing: 0))
         } else {
             ForEach(group.pullRequests) { pr in
                 PRRow(pr: pr)
