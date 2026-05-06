@@ -38,11 +38,19 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.lloydmajor.gowi
         INFOPLIST_FILE: App/Info.plist
         CODE_SIGN_ENTITLEMENTS: App/Gowi.entitlements
-        CODE_SIGN_STYLE: Automatic
         COMBINE_HIDPI_IMAGES: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         DEFINES_MODULE: YES
-        ENABLE_TESTABILITY: YES
+      configs:
+        Debug:
+          CODE_SIGN_STYLE: Automatic
+          ENABLE_TESTABILITY: YES
+        Release:
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: "Developer ID Application"
+          DEVELOPMENT_TEAM: "DV3JKTPML2"
+          ENABLE_TESTABILITY: NO
+          OTHER_CODE_SIGN_FLAGS: "--timestamp"
 
   GowiTests:
     type: bundle.unit-test
