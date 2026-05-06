@@ -126,29 +126,47 @@ struct MenuBarRoot: View {
     }
 
     private var footer: some View {
-        HStack(spacing: 8) {
-            if let last = model.lastRefresh {
-                Text("Refreshed \(last, format: .relative(presentation: .named))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text("—").font(.caption).foregroundStyle(.secondary)
+        VStack(spacing: 0) {
+            if model.isShowingCachedData && !model.isRefreshing {
+                HStack(spacing: 6) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.caption2)
+                    Text("Cached data")
+                        .font(.caption2)
+                    Spacer()
+                    Button("Retry") { model.refresh() }
+                        .font(.caption2)
+                        .buttonStyle(.borderless)
+                }
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
+                Divider()
             }
-            Spacer()
-            Button { openSettings() } label: {
-                Image(systemName: "gearshape")
-            }
-            .buttonStyle(.borderless)
-            .help("Settings")
+            HStack(spacing: 8) {
+                if let last = model.lastRefresh {
+                    Text("Refreshed \(last, format: .relative(presentation: .named))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text("—").font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button { openSettings() } label: {
+                    Image(systemName: "gearshape")
+                }
+                .buttonStyle(.borderless)
+                .help("Settings")
 
-            Button { NSApp.terminate(nil) } label: {
-                Image(systemName: "power")
+                Button { NSApp.terminate(nil) } label: {
+                    Image(systemName: "power")
+                }
+                .buttonStyle(.borderless)
+                .help("Quit gowi")
             }
-            .buttonStyle(.borderless)
-            .help("Quit gowi")
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
     }
 
     // MARK: - helpers
