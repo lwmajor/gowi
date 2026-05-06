@@ -1,4 +1,7 @@
 import Foundation
+import OSLog
+
+private let logger = Logger(subsystem: "com.lloydmajor.gowi", category: "PRCache")
 
 struct PRCache {
     static let shared = PRCache()
@@ -25,12 +28,23 @@ struct PRCache {
     }()
 
     func load() -> [RepoGroup]? {
-        guard let url, let data = try? Data(contentsOf: url) else { return nil }
-        return try? decoder.decode([RepoGroup].self, from: data)
+        guard let url else { return nil }
+        do {
+            let data = try Data(contentsOf: url)
+            return try decoder.decode([RepoGroup].self, from: data)
+        } catch {
+            logger.error("Cache load failed: \(error.localizedDescription)")
+            return nil
+        }
     }
 
     func save(_ groups: [RepoGroup]) {
-        guard let url, let data = try? encoder.encode(groups) else { return }
-        try? data.write(to: url, options: .atomic)
+        guard let url else { return }
+        do {
+            let data = try encoder.encode(groups)
+            try data.write(to: url, options: .atomic)
+        } catch {
+            logger.error("Cache save failed: \(error.localizedDescription)")
+        }
     }
 }
