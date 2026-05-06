@@ -229,6 +229,15 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(auth.state, .signedOut)
     }
 
+    func testViewerUnauthorizedSetsTokenRevokedAndSignsOut() async {
+        fetcher.viewerResult = .failure(GitHubError.unauthorized)
+
+        await model.refreshViewer()
+
+        XCTAssertTrue(model.tokenRevoked)
+        XCTAssertEqual(auth.state, .signedOut)
+    }
+
     func testTokenRevokedClearedOnNextSignIn() async {
         // Simulate a revocation sign-out cycle
         let repo = makeRepo()

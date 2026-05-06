@@ -105,6 +105,7 @@ final class AppModel: ObservableObject {
             viewer = try await github.fetchViewer()
             lastError = nil
         } catch GitHubError.unauthorized {
+            tokenRevoked = true
             auth.signOut()
         } catch {
             lastError = error.localizedDescription
