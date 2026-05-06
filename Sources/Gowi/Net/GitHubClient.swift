@@ -40,11 +40,20 @@ struct GraphQLResponse<T: Decodable>: Decodable {
     }
 }
 
+protocol GitHubClientProtocol: AnyObject {
+    func fetchViewer() async throws -> Viewer
+    func fetchOpenPRsBatched(repos: [TrackedRepo]) async throws -> BatchFetchResult
+    func fetchOpenPRs(in repo: TrackedRepo) async throws -> GitHubClient.PRFetchResult
+    func validateRepo(_ repo: TrackedRepo) async throws
+}
+
 /// Stateless-ish GraphQL client for GitHub's v4 API.
 ///
 /// `tokenProvider` is called on every request so the client always sees the
 /// latest token without holding a reference to `AuthService` / `KeychainHelper`.
 /// Throwing `.unauthorized` on a 401 is the signal for callers to sign out.
+extension GitHubClient: GitHubClientProtocol {}
+
 final class GitHubClient {
     private let tokenProvider: () -> String?
     private let session: URLSession

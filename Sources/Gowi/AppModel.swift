@@ -26,9 +26,10 @@ final class AppModel: ObservableObject {
     @Published var lastRefresh: Date?
     @Published var rateLimitWarning: Bool = false
     @Published var samlAuthURL: URL?
+    @Published var tokenRevoked = false
 
-    let github: GitHubClient
-    private let auth: AuthService
+    let github: any GitHubClientProtocol
+    private let auth: any AuthServiceProtocol
     private let store: RepoStore
     private let notifications: NotificationService
     private var cancellables = Set<AnyCancellable>()
@@ -37,13 +38,18 @@ final class AppModel: ObservableObject {
     private var rateLimitPauseUntil: Date?
     private var suppressNextStoreRefresh = false
 
-    init(auth: AuthService, store: RepoStore, notifications: NotificationService) {
+    init(
+        auth: any AuthServiceProtocol,
+        store: RepoStore,
+        notifications: NotificationService,
+        github: (any GitHubClientProtocol)? = nil
+    ) {
         self.auth = auth
         self.store = store
         self.notifications = notifications
-        self.github = GitHubClient(tokenProvider: { [weak auth] in auth?.accessToken })
+        self.github = github ?? GitHubClient(tokenProvider: { auth.accessToken })
 
-        auth.$state
+        auth.statePublisher
             .removeDuplicates()
             .sink { [weak self] newState in
                 guard let self else { return }
@@ -94,9 +100,10 @@ final class AppModel: ObservableObject {
     func refreshViewer() async {
         do {
             viewer = try await github.fetchViewer()
+            if tokenRevoked { tokenRevoked = false }
             lastError = nil
         } catch GitHubError.unauthorized {
-            auth.signOut()
+            handleUnauthorized()
         } catch {
             lastError = error.localizedDescription
         }
@@ -152,6 +159,11 @@ final class AppModel: ObservableObject {
 
     // MARK: - private refresh
 
+    private func handleUnauthorized() {
+        tokenRevoked = true
+        auth.signOut()
+    }
+
     private func doRefresh() async {
         isRefreshing = true
         defer { isRefreshing = false }
@@ -185,7 +197,7 @@ final class AppModel: ObservableObject {
             notifications.process(groups: groups)
             PRCache.shared.save(groups)
         } catch GitHubError.unauthorized {
-            auth.signOut()
+            handleUnauthorized()
         } catch GitHubError.samlRequired(let url) {
             samlAuthURL = url
         } catch {
@@ -206,7 +218,7 @@ final class AppModel: ObservableObject {
                 PRCache.shared.save(groups)
             }
         } catch GitHubError.unauthorized {
-            auth.signOut()
+            handleUnauthorized()
         } catch GitHubError.samlRequired(let url) {
             samlAuthURL = url
         } catch {
