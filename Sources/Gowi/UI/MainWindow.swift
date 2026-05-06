@@ -30,19 +30,11 @@ struct MainWindow: View {
     @ViewBuilder
     private var content: some View {
         if auth.state != .signedIn {
-            VStack(spacing: 0) {
-                if model.tokenRevoked {
-                    tokenRevokedBanner
-                }
-                SignInView()
-            }
+            SignInView()
         } else if store.repos.isEmpty {
             noReposState
         } else {
             VStack(spacing: 0) {
-                if model.isShowingCachedData && !model.isRefreshing {
-                    cachedDataBanner
-                }
                 if let authURL = model.samlAuthURL {
                     samlBanner(url: authURL)
                 }
@@ -102,49 +94,6 @@ struct MainWindow: View {
                 .help("Settings")
             }
         }
-    }
-
-    // MARK: - token revoked banner
-
-    private var tokenRevokedBanner: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "key.slash")
-                .foregroundStyle(.red)
-            Text("You were signed out because your GitHub token was revoked.")
-                .font(.callout)
-                .foregroundStyle(.primary)
-            Spacer()
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.red.opacity(0.10))
-        .overlay(alignment: .bottom) { Divider() }
-    }
-
-    // MARK: - cached data banner
-
-    private var cachedDataBanner: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "clock.arrow.circlepath")
-                .foregroundStyle(.secondary)
-            if let last = model.lastRefresh {
-                Text("Showing cached data — last refreshed \(last, format: .relative(presentation: .named))")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            } else {
-                Text("Showing cached data")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button("Retry") { model.refresh() }
-                .font(.caption)
-                .buttonStyle(.borderless)
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(Color(nsColor: .controlBackgroundColor))
-        .overlay(alignment: .bottom) { Divider() }
     }
 
     // MARK: - SAML banner

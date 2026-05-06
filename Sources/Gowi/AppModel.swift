@@ -26,8 +26,6 @@ final class AppModel: ObservableObject {
     @Published var lastRefresh: Date?
     @Published var rateLimitWarning: Bool = false
     @Published var samlAuthURL: URL?
-    @Published var isShowingCachedData: Bool = false
-    @Published var tokenRevoked: Bool = false
 
     let github: GitHubClient
     private let auth: AuthService
@@ -51,7 +49,6 @@ final class AppModel: ObservableObject {
                 guard let self else { return }
                 switch newState {
                 case .signedIn:
-                    self.tokenRevoked = false
                     Task { await self.refreshViewer() }
                     self.loadCacheIfNeeded()
                     self.refresh()
@@ -59,7 +56,6 @@ final class AppModel: ObservableObject {
                 case .signedOut, .failed, .awaitingUserCode:
                     self.viewer = nil
                     self.state = .signedOut
-                    self.isShowingCachedData = false
                     self.refreshTask?.cancel()
                     self.tickTask?.cancel()
                     self.rateLimitWarning = false
@@ -185,22 +181,16 @@ final class AppModel: ObservableObject {
             }
 
             state = .loaded(groups)
-            isShowingCachedData = false
             lastRefresh = Date()
             notifications.process(groups: groups)
             PRCache.shared.save(groups)
         } catch GitHubError.unauthorized {
-            tokenRevoked = true
             auth.signOut()
         } catch GitHubError.samlRequired(let url) {
             samlAuthURL = url
         } catch {
             let msg = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            if case .loaded = state {
-                isShowingCachedData = true
-            } else {
-                state = .error(msg)
-            }
+            if case .loaded = state {} else { state = .error(msg) }
             lastError = msg
         }
     }
@@ -216,7 +206,6 @@ final class AppModel: ObservableObject {
                 PRCache.shared.save(groups)
             }
         } catch GitHubError.unauthorized {
-            tokenRevoked = true
             auth.signOut()
         } catch GitHubError.samlRequired(let url) {
             samlAuthURL = url
@@ -236,7 +225,6 @@ final class AppModel: ObservableObject {
         guard case .signedOut = state else { return }
         if let cached = PRCache.shared.load(), !cached.isEmpty {
             state = .loaded(cached)
-            isShowingCachedData = true
         }
     }
 
