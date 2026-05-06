@@ -40,6 +40,14 @@ struct GraphQLResponse<T: Decodable>: Decodable {
     }
 }
 
+/// Subset of `GitHubClient` used by `AppModel` and views — extracted so tests can inject a spy.
+protocol PRFetchingClient {
+    func fetchViewer() async throws -> Viewer
+    func validateRepo(_ repo: TrackedRepo) async throws
+    func fetchOpenPRsBatched(repos: [TrackedRepo]) async throws -> BatchFetchResult
+    func fetchOpenPRs(in repo: TrackedRepo) async throws -> GitHubClient.PRFetchResult
+}
+
 /// Stateless-ish GraphQL client for GitHub's v4 API.
 ///
 /// `tokenProvider` is called on every request so the client always sees the
@@ -169,3 +177,5 @@ final class GitHubClient {
         return try await execute(req)
     }
 }
+
+extension GitHubClient: PRFetchingClient {}
