@@ -12,13 +12,13 @@ enum AuthState: Equatable {
 final class AuthService: ObservableObject {
     @Published private(set) var state: AuthState = .signedOut
 
-    private let keychain: KeychainHelper
-    private let client: DeviceFlowClient
+    private let keychain: any KeychainStoring
+    private let client: any DeviceFlowing
     private var pollingTask: Task<Void, Never>?
 
     init(
-        keychain: KeychainHelper = KeychainHelper(),
-        client: DeviceFlowClient = DeviceFlowClient()
+        keychain: any KeychainStoring = KeychainHelper(),
+        client: any DeviceFlowing = DeviceFlowClient()
     ) {
         self.keychain = keychain
         self.client = client

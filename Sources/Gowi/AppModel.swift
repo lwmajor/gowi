@@ -29,7 +29,7 @@ final class AppModel: ObservableObject {
     @Published var isShowingCachedData: Bool = false
     @Published var tokenRevoked: Bool = false
 
-    let github: GitHubClient
+    let github: any PRFetchingClient
     private let auth: AuthService
     private let store: RepoStore
     private let notifications: NotificationService
@@ -39,11 +39,16 @@ final class AppModel: ObservableObject {
     private var rateLimitPauseUntil: Date?
     private var suppressNextStoreRefresh = false
 
-    init(auth: AuthService, store: RepoStore, notifications: NotificationService) {
+    init(
+        auth: AuthService,
+        store: RepoStore,
+        notifications: NotificationService,
+        client: (any PRFetchingClient)? = nil
+    ) {
         self.auth = auth
         self.store = store
         self.notifications = notifications
-        self.github = GitHubClient(tokenProvider: { [weak auth] in auth?.accessToken })
+        self.github = client ?? GitHubClient(tokenProvider: { [weak auth] in auth?.accessToken })
 
         auth.$state
             .removeDuplicates()
@@ -164,6 +169,7 @@ final class AppModel: ObservableObject {
         let repos = store.repos
         if repos.isEmpty {
             state = .loaded([])
+            isShowingCachedData = false
             lastRefresh = Date()
             return
         }
