@@ -40,6 +40,9 @@ struct MainWindow: View {
             noReposState
         } else {
             VStack(spacing: 0) {
+                if model.isShowingCachedData && !model.isRefreshing {
+                    cachedDataBanner
+                }
                 if let authURL = model.samlAuthURL {
                     samlBanner(url: authURL)
                 }
@@ -110,6 +113,32 @@ struct MainWindow: View {
             message: "Your access token was revoked. Sign in again to continue.",
             onDismiss: { model.tokenRevoked = false }
         )
+    }
+
+    // MARK: - cached data banner
+
+    private var cachedDataBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "clock.arrow.circlepath")
+                .foregroundStyle(.secondary)
+            if let last = model.lastRefresh {
+                Text("Showing cached data — last refreshed \(last, format: .relative(presentation: .named))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("Showing cached data")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Retry") { model.refresh() }
+                .font(.caption)
+                .buttonStyle(.borderless)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .overlay(alignment: .bottom) { Divider() }
     }
 
     private func samlBanner(url: URL) -> some View {

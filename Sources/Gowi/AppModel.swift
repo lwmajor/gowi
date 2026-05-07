@@ -26,10 +26,11 @@ final class AppModel: ObservableObject {
     @Published var lastRefresh: Date?
     @Published var rateLimitWarning: Bool = false
     @Published var samlAuthURL: URL?
-    @Published var tokenRevoked = false
+    @Published var isShowingCachedData: Bool = false
+    @Published var tokenRevoked: Bool = false
 
-    let github: any GitHubClientProtocol
-    private let auth: any AuthServiceProtocol
+    let github: any PRFetchingClient
+    private let auth: AuthService
     private let store: RepoStore
     private let notifications: NotificationService
     private var cancellables = Set<AnyCancellable>()
@@ -39,17 +40,17 @@ final class AppModel: ObservableObject {
     private var suppressNextStoreRefresh = false
 
     init(
-        auth: any AuthServiceProtocol,
+        auth: AuthService,
         store: RepoStore,
         notifications: NotificationService,
-        github: (any GitHubClientProtocol)? = nil
+        client: (any PRFetchingClient)? = nil
     ) {
         self.auth = auth
         self.store = store
         self.notifications = notifications
-        self.github = github ?? GitHubClient(tokenProvider: { auth.accessToken })
+        self.github = client ?? GitHubClient(tokenProvider: { [weak auth] in auth?.accessToken })
 
-        auth.statePublisher
+        auth.$state
             .removeDuplicates()
             .sink { [weak self] newState in
                 guard let self else { return }
@@ -62,6 +63,7 @@ final class AppModel: ObservableObject {
                 case .signedOut, .failed, .awaitingUserCode:
                     self.viewer = nil
                     self.state = .signedOut
+                    self.isShowingCachedData = false
                     self.refreshTask?.cancel()
                     self.tickTask?.cancel()
                     self.rateLimitWarning = false
@@ -171,6 +173,7 @@ final class AppModel: ObservableObject {
         let repos = store.repos
         if repos.isEmpty {
             state = .loaded([])
+            isShowingCachedData = false
             lastRefresh = Date()
             return
         }
@@ -193,6 +196,7 @@ final class AppModel: ObservableObject {
             }
 
             state = .loaded(groups)
+            isShowingCachedData = false
             lastRefresh = Date()
             notifications.process(groups: groups)
             PRCache.shared.save(groups)
@@ -202,7 +206,11 @@ final class AppModel: ObservableObject {
             samlAuthURL = url
         } catch {
             let msg = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-            if case .loaded = state {} else { state = .error(msg) }
+            if case .loaded = state {
+                isShowingCachedData = true
+            } else {
+                state = .error(msg)
+            }
             lastError = msg
         }
     }
@@ -237,6 +245,7 @@ final class AppModel: ObservableObject {
         guard case .signedOut = state else { return }
         if let cached = PRCache.shared.load(), !cached.isEmpty {
             state = .loaded(cached)
+            isShowingCachedData = true
         }
     }
 

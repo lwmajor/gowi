@@ -6,6 +6,13 @@ enum KeychainError: Error, Equatable {
     case encodingFailed
 }
 
+/// Interface for token storage — extracted so tests can inject an in-memory spy.
+protocol KeychainStoring {
+    func store(_ token: String) throws
+    func read() throws -> String?
+    func delete() throws
+}
+
 /// Minimal wrapper around `SecItemAdd` / `SecItemCopyMatching` for a single
 /// generic-password entry keyed by `service` + `account`. No iCloud sync.
 struct KeychainHelper {
@@ -76,3 +83,5 @@ struct KeychainHelper {
         }
     }
 }
+
+extension KeychainHelper: KeychainStoring {}

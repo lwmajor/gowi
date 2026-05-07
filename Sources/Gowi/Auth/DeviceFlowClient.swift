@@ -41,6 +41,12 @@ enum DeviceFlowError: Error, LocalizedError, Equatable {
     }
 }
 
+/// Interface for the two device-flow network steps — extracted so tests can inject a spy.
+protocol DeviceFlowing {
+    func requestCode(clientID: String, scopes: String) async throws -> DeviceCodeResponse
+    func pollForToken(clientID: String, deviceCode: String, initialInterval: Int) async throws -> String
+}
+
 /// Thin wrapper around GitHub's OAuth device-flow endpoints.
 /// Stateless; all state lives in `AuthService`.
 struct DeviceFlowClient {
@@ -166,3 +172,5 @@ struct DeviceFlowClient {
         }
     }
 }
+
+extension DeviceFlowClient: DeviceFlowing {}
