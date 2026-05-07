@@ -55,12 +55,12 @@ struct RepositoriesPane: View {
                 .help("Remove selected repository")
 
                 Spacer()
-                Button("Export repos") {
+                Button("Export Repos") {
                     exportRepos()
                 }
                 .disabled(store.repos.isEmpty)
 
-                Button("Import repos") {
+                Button("Import Repos") {
                     importRepos()
                 }
 
@@ -117,7 +117,7 @@ struct RepositoriesPane: View {
     private func importRepos() {
         let text = NSPasteboard.general.string(forType: .string) ?? ""
         let result = store.importRepos(from: text)
-        showActionMessage("Added \(result.added) repos, skipped \(result.skipped) duplicates/invalid.")
+        showActionMessage("Added \(result.added) repos, skipped \(result.skipped) duplicate/invalid lines.")
     }
 
     private func showActionMessage(_ message: String) {

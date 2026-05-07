@@ -57,9 +57,7 @@ final class RepoStore: ObservableObject {
             let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
             guard let repo = TrackedRepo(nameWithOwner: line) else {
                 skipped += 1
-                #if DEBUG
                 logger.debug("Skipping invalid imported repo line: \(line, privacy: .public)")
-                #endif
                 continue
             }
             guard !updatedRepos.contains(repo) else {
