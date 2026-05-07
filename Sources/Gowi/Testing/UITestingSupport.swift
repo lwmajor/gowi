@@ -209,20 +209,30 @@ private final class UITestPRFetcher: PRFetchingClient {
     private func makePRs(repo: TrackedRepo, count: Int) -> [PullRequest] {
         let reviews: [ReviewDecision] = [.approved, .changesRequested, .reviewRequired, .noReview]
         let checks: [CheckStatus] = [.success, .failure, .pending, .noChecks]
-        return (0..<count).map { i in
-            PullRequest(
-                id: "\(repo.id)#\(i)",
-                number: 100 + i,
-                title: "Sample PR \(i + 1) in \(repo.name)",
-                url: URL(string: "https://github.com/\(repo.nameWithOwner)/pull/\(100 + i)")!,
+        return (0..<count).map { i -> PullRequest in
+            let number = 100 + i
+            let id = "\(repo.id)#\(i)"
+            let title = "Sample PR \(i + 1) in \(repo.name)"
+            let url = URL(string: "https://github.com/\(repo.nameWithOwner)/pull/\(number)")!
+            let isDraft = count > 2 && i == 2
+            let offset = Double(i + 1)
+            let createdAt = Date().addingTimeInterval(-offset * 3600)
+            let updatedAt = Date().addingTimeInterval(-offset * 1800)
+            let review = reviews[i % reviews.count]
+            let check = checks[i % checks.count]
+            return PullRequest(
+                id: id,
+                number: number,
+                title: title,
+                url: url,
                 authorLogin: "octocat",
                 authorAvatarURL: nil,
-                isDraft: count > 2 && i == 2,
-                createdAt: Date().addingTimeInterval(-Double(i + 1) * 3600),
-                updatedAt: Date().addingTimeInterval(-Double(i + 1) * 1800),
+                isDraft: isDraft,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
                 repo: repo,
-                reviewDecision: reviews[i % reviews.count],
-                checkStatus: checks[i % checks.count]
+                reviewDecision: review,
+                checkStatus: check
             )
         }
     }
