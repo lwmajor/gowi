@@ -71,7 +71,7 @@ struct RepositoriesPane: View {
                 .help("Import repositories from the clipboard")
                 .accessibilityIdentifier("importReposButton")
 
-                Text("\(store.repos.count) repositories tracked")
+                Text(trackedCountLabel)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -128,17 +128,7 @@ struct RepositoriesPane: View {
     private func importRepos() {
         let text = NSPasteboard.general.string(forType: .string) ?? ""
         let result = store.importRepos(from: text)
-        let skippedLabel = result.skipped == 1 ? "entry" : "entries"
-        let skippedReason = "already tracked or invalid"
-        if result.added == 0, result.skipped == 0 {
-            showActionMessage("No repositories found to import.")
-        } else if result.added == 0 {
-            showActionMessage("No new repositories added. All \(result.skipped) \(skippedLabel) were \(skippedReason).")
-        } else if result.skipped == 0 {
-            showActionMessage("Added \(result.added) repositories.")
-        } else {
-            showActionMessage("Added \(result.added) repositories, skipped \(result.skipped) \(skippedReason) \(skippedLabel).")
-        }
+        showActionMessage(importMessage(for: result))
     }
 
     private func showActionMessage(_ message: String) {
@@ -151,6 +141,26 @@ struct RepositoriesPane: View {
             guard actionMessageToken == token else { return }
             actionMessage = nil
         }
+    }
+
+    private var trackedCountLabel: String {
+        let repoLabel = store.repos.count == 1 ? "repository" : "repositories"
+        return "\(store.repos.count) \(repoLabel) tracked"
+    }
+
+    private func importMessage(for result: RepoStore.ImportResult) -> String {
+        let skippedLabel = result.skipped == 1 ? "entry" : "entries"
+
+        if result.added == 0, result.skipped == 0 {
+            return "No repositories found to import."
+        }
+        if result.added == 0 {
+            return "No new repositories added. All \(result.skipped) \(skippedLabel) were already tracked or invalid."
+        }
+        if result.skipped == 0 {
+            return "Added \(result.added) repositories."
+        }
+        return "Added \(result.added) repositories, skipped \(result.skipped) \(skippedLabel) that were already tracked or invalid."
     }
 
     private var emptyState: some View {
