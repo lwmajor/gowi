@@ -53,8 +53,8 @@ final class RepoStore: ObservableObject {
         var added = 0
         var skipped = 0
 
-        for rawLine in text.split(whereSeparator: \.isNewline) {
-            let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
+        for untrimmedLine in text.split(whereSeparator: \.isNewline) {
+            let line = untrimmedLine.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !line.isEmpty else { continue }
             guard let repo = TrackedRepo(nameWithOwner: line) else {
                 skipped += 1
