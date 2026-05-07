@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 struct RepositoriesPane: View {
@@ -6,6 +7,8 @@ struct RepositoriesPane: View {
     @State private var showingAdd = false
     @State private var selectedRepo: TrackedRepo.ID?
     @State private var repoToDelete: TrackedRepo?
+    @State private var actionMessage: String?
+    @State private var actionMessageToken = UUID()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -52,7 +55,22 @@ struct RepositoriesPane: View {
                 .help("Remove selected repository")
 
                 Spacer()
+                Button("Export repos") {
+                    exportRepos()
+                }
+                .disabled(store.repos.isEmpty)
+
+                Button("Import repos") {
+                    importRepos()
+                }
+
                 Text("\(store.repos.count) tracked")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let actionMessage {
+                Text(actionMessage)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -87,6 +105,31 @@ struct RepositoriesPane: View {
     private func confirmDelete(id: TrackedRepo.ID?) {
         guard let id, let repo = store.repos.first(where: { $0.id == id }) else { return }
         repoToDelete = repo
+    }
+
+    private func exportRepos() {
+        let text = store.exportText()
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        showActionMessage("Copied!")
+    }
+
+    private func importRepos() {
+        let text = NSPasteboard.general.string(forType: .string) ?? ""
+        let result = store.importRepos(from: text)
+        showActionMessage("Added \(result.added) repos, skipped \(result.skipped) duplicates/invalid.")
+    }
+
+    private func showActionMessage(_ message: String) {
+        let token = UUID()
+        actionMessageToken = token
+        actionMessage = message
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .seconds(2))
+            guard actionMessageToken == token else { return }
+            actionMessage = nil
+        }
     }
 
     private var emptyState: some View {

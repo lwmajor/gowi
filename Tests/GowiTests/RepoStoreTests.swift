@@ -114,4 +114,46 @@ final class RepoStoreTests: XCTestCase {
         store.move(fromOffsets: IndexSet(integer: 2), toOffset: 0)
         XCTAssertEqual(store.repos, [c, a, b])
     }
+
+    func testExportTextUsesNewlineSeparatedOwnerNameList() {
+        store.add(TrackedRepo(owner: "apple", name: "swift"))
+        store.add(TrackedRepo(owner: "pointfreeco", name: "swift-composable-architecture"))
+
+        XCTAssertEqual(
+            store.exportText(),
+            "apple/swift\npointfreeco/swift-composable-architecture"
+        )
+    }
+
+    func testImportAddsValidReposAndSkipsDuplicatesAndInvalidLines() {
+        store.add(TrackedRepo(owner: "apple", name: "swift"))
+
+        let result = store.importRepos(from: """
+        apple/swift
+        pointfreeco/swift-composable-architecture
+        invalid repo
+        pointfreeco/swift-parsing
+
+        """)
+
+        XCTAssertEqual(result, .init(added: 2, skipped: 2))
+        XCTAssertEqual(
+            store.repos.map(\.nameWithOwner),
+            [
+                "apple/swift",
+                "pointfreeco/swift-composable-architecture",
+                "pointfreeco/swift-parsing",
+            ]
+        )
+    }
+
+    func testImportPersistsAcrossReload() {
+        _ = store.importRepos(from: "apple/swift\npointfreeco/swift-parsing")
+
+        let reloaded = RepoStore(defaults: defaults)
+        XCTAssertEqual(
+            reloaded.repos.map(\.nameWithOwner),
+            ["apple/swift", "pointfreeco/swift-parsing"]
+        )
+    }
 }
