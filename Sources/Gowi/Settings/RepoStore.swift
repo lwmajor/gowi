@@ -55,6 +55,7 @@ final class RepoStore: ObservableObject {
 
         for rawLine in text.split(whereSeparator: \.isNewline) {
             let line = rawLine.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !line.isEmpty else { continue }
             guard let repo = TrackedRepo(nameWithOwner: line) else {
                 skipped += 1
                 logger.debug("Skipping invalid imported repo line: \(line, privacy: .private)")

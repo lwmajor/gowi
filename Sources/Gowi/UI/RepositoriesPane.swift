@@ -75,7 +75,6 @@ struct RepositoriesPane: View {
                 Text(actionMessage)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .accessibilityLabel(actionMessage)
                     .accessibilityLiveRegion(.polite)
             }
 
@@ -121,8 +120,10 @@ struct RepositoriesPane: View {
     private func importRepos() {
         let text = NSPasteboard.general.string(forType: .string) ?? ""
         let result = store.importRepos(from: text)
-        if result.added == 0 {
-            showActionMessage("No new repositories added. Skipped \(result.skipped) already tracked or invalid entries.")
+        if result.added == 0, result.skipped == 0 {
+            showActionMessage("No repositories found to import.")
+        } else if result.added == 0 {
+            showActionMessage("No new repositories added. All \(result.skipped) entries were already tracked or invalid.")
         } else {
             showActionMessage("Added \(result.added) repositories, skipped \(result.skipped) already tracked or invalid entries.")
         }
