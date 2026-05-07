@@ -48,7 +48,7 @@ final class AppModel: ObservableObject {
         self.auth = auth
         self.store = store
         self.notifications = notifications
-        self.github = client ?? GitHubClient(tokenProvider: { auth.accessToken })
+        self.github = client ?? GitHubClient(tokenProvider: { [weak auth] in auth?.accessToken })
 
         auth.$state
             .removeDuplicates()
