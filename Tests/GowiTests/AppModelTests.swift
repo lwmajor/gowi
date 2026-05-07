@@ -134,7 +134,7 @@ final class AppModelTests: XCTestCase {
 
     // MARK: - Successful refresh
 
-    func testSuccessfulRefreshWithReprosProducesLoadedGroups() async {
+    func testSuccessfulRefreshWithReposProducesLoadedGroups() async {
         let repo = makeRepo()
         store.add(repo)
         let pr = makePR(id: "pr1", repo: repo)
