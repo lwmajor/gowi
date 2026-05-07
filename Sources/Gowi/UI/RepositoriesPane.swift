@@ -2,6 +2,8 @@ import AppKit
 import SwiftUI
 
 struct RepositoriesPane: View {
+    private let actionMessageDuration: Duration = .seconds(2)
+
     @EnvironmentObject private var store: RepoStore
     @EnvironmentObject private var model: AppModel
     @State private var showingAdd = false
@@ -119,7 +121,11 @@ struct RepositoriesPane: View {
     private func importRepos() {
         let text = NSPasteboard.general.string(forType: .string) ?? ""
         let result = store.importRepos(from: text)
-        showActionMessage("Added \(result.added) repositories, skipped \(result.skipped) (already tracked or invalid format).")
+        if result.added == 0 {
+            showActionMessage("No new repositories added. Skipped \(result.skipped) already tracked or invalid entries.")
+        } else {
+            showActionMessage("Added \(result.added) repositories, skipped \(result.skipped) already tracked or invalid entries.")
+        }
     }
 
     private func showActionMessage(_ message: String) {
@@ -128,7 +134,7 @@ struct RepositoriesPane: View {
         actionMessage = message
 
         Task { @MainActor in
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: actionMessageDuration)
             guard actionMessageToken == token else { return }
             actionMessage = nil
         }
