@@ -55,16 +55,16 @@ struct RepositoriesPane: View {
                 .help("Remove selected repository")
 
                 Spacer()
-                Button("Export Repos") {
+                Button("Export Repositories") {
                     exportRepos()
                 }
                 .disabled(store.repos.isEmpty)
 
-                Button("Import Repos") {
+                Button("Import Repositories") {
                     importRepos()
                 }
 
-                Text("\(store.repos.count) tracked")
+                Text("\(store.repos.count) repositories tracked")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -119,7 +119,7 @@ struct RepositoriesPane: View {
     private func importRepos() {
         let text = NSPasteboard.general.string(forType: .string) ?? ""
         let result = store.importRepos(from: text)
-        showActionMessage("Added \(result.added) repositories, skipped \(result.skipped) duplicate/invalid lines.")
+        showActionMessage("Added \(result.added) repositories, skipped \(result.skipped) (already tracked or invalid format).")
     }
 
     private func showActionMessage(_ message: String) {
