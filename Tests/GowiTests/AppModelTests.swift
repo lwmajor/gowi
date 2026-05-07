@@ -106,7 +106,7 @@ final class AppModelTests: XCTestCase {
         fetcher = SpyFetcher()
         model = AppModel(auth: auth, store: store, notifications: notifications, client: fetcher)
 
-        // Drain the auto-triggered refresh that fires when auth is .signedIn at init.
+        // Establish a loaded baseline state before each test.
         await model.performRefresh()
     }
 
