@@ -104,21 +104,15 @@ struct MainWindow: View {
         }
     }
 
-    // MARK: - token revoked banner
+    // MARK: - banners
 
     private var tokenRevokedBanner: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "key.slash")
-                .foregroundStyle(.red)
-            Text("You were signed out because your GitHub token was revoked.")
-                .font(.callout)
-                .foregroundStyle(.primary)
-            Spacer()
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color.red.opacity(0.10))
-        .overlay(alignment: .bottom) { Divider() }
+        inlineBanner(
+            icon: "key.slash", accentColor: .red,
+            title: "GitHub token revoked",
+            message: "Your access token was revoked. Sign in again to continue.",
+            onDismiss: { model.tokenRevoked = false }
+        )
     }
 
     // MARK: - cached data banner
@@ -147,29 +141,41 @@ struct MainWindow: View {
         .overlay(alignment: .bottom) { Divider() }
     }
 
-    // MARK: - SAML banner
-
     private func samlBanner(url: URL) -> some View {
+        inlineBanner(
+            icon: "lock.shield", accentColor: .orange,
+            title: "GitHub SSO authorization required",
+            message: "Your token needs to be authorized for your organization.",
+            action: ("Authorize Token", { NSWorkspace.shared.open(url); model.samlAuthURL = nil }),
+            onDismiss: { model.samlAuthURL = nil }
+        )
+    }
+
+    private func inlineBanner(
+        icon: String,
+        accentColor: Color,
+        title: String,
+        message: String,
+        action: (label: String, handler: () -> Void)? = nil,
+        onDismiss: @escaping () -> Void
+    ) -> some View {
         HStack(spacing: 8) {
-            Image(systemName: "lock.shield")
-                .foregroundStyle(.orange)
+            Image(systemName: icon)
+                .foregroundStyle(accentColor)
             VStack(alignment: .leading, spacing: 2) {
-                Text("GitHub SSO authorization required")
+                Text(title)
                     .font(.callout).bold()
-                Text("Your token needs to be authorized for your organization.")
+                Text(message)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Button("Authorize Token") {
-                NSWorkspace.shared.open(url)
-                model.samlAuthURL = nil
+            if let action {
+                Button(action.label, action: action.handler)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-            Button {
-                model.samlAuthURL = nil
-            } label: {
+            Button { onDismiss() } label: {
                 Image(systemName: "xmark")
                     .font(.caption)
             }
@@ -179,7 +185,7 @@ struct MainWindow: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color.orange.opacity(0.12))
+        .background(accentColor.opacity(0.10))
         .overlay(alignment: .bottom) {
             Divider()
         }

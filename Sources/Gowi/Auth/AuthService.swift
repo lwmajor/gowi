@@ -1,5 +1,13 @@
 import Foundation
 import AppKit
+import Combine
+
+protocol AuthServiceProtocol: AnyObject {
+    var state: AuthState { get }
+    var statePublisher: AnyPublisher<AuthState, Never> { get }
+    var accessToken: String? { get }
+    func signOut()
+}
 
 enum AuthState: Equatable {
     case signedOut
@@ -82,4 +90,8 @@ final class AuthService: ObservableObject {
         try? keychain.delete()
         state = .signedOut
     }
+}
+
+extension AuthService: AuthServiceProtocol {
+    var statePublisher: AnyPublisher<AuthState, Never> { $state.eraseToAnyPublisher() }
 }

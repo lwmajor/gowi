@@ -56,7 +56,6 @@ final class AppModel: ObservableObject {
                 guard let self else { return }
                 switch newState {
                 case .signedIn:
-                    self.tokenRevoked = false
                     Task { await self.refreshViewer() }
                     self.loadCacheIfNeeded()
                     self.refresh()
@@ -103,10 +102,10 @@ final class AppModel: ObservableObject {
     func refreshViewer() async {
         do {
             viewer = try await github.fetchViewer()
+            if tokenRevoked { tokenRevoked = false }
             lastError = nil
         } catch GitHubError.unauthorized {
-            tokenRevoked = true
-            auth.signOut()
+            handleUnauthorized()
         } catch {
             lastError = error.localizedDescription
         }
@@ -162,6 +161,11 @@ final class AppModel: ObservableObject {
 
     // MARK: - private refresh
 
+    private func handleUnauthorized() {
+        tokenRevoked = true
+        auth.signOut()
+    }
+
     private func doRefresh() async {
         isRefreshing = true
         defer { isRefreshing = false }
@@ -197,8 +201,7 @@ final class AppModel: ObservableObject {
             notifications.process(groups: groups)
             PRCache.shared.save(groups)
         } catch GitHubError.unauthorized {
-            tokenRevoked = true
-            auth.signOut()
+            handleUnauthorized()
         } catch GitHubError.samlRequired(let url) {
             samlAuthURL = url
         } catch {
@@ -223,8 +226,7 @@ final class AppModel: ObservableObject {
                 PRCache.shared.save(groups)
             }
         } catch GitHubError.unauthorized {
-            tokenRevoked = true
-            auth.signOut()
+            handleUnauthorized()
         } catch GitHubError.samlRequired(let url) {
             samlAuthURL = url
         } catch {

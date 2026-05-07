@@ -21,7 +21,7 @@ if [[ "${1:-}" != "--report-only" ]]; then
         -enableCodeCoverage YES \
         -resultBundlePath "$BUNDLE" \
         test 2>&1 \
-        | grep -E '(error:|Test Suite .All tests|BUILD SUCCEEDED|BUILD FAILED)' \
+        | grep -E '(error:|Test Suite \.All tests|BUILD SUCCEEDED|BUILD FAILED)' \
         | tail -4
     echo ""
 fi

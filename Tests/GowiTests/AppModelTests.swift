@@ -106,7 +106,7 @@ final class AppModelTests: XCTestCase {
         fetcher = SpyFetcher()
         model = AppModel(auth: auth, store: store, notifications: notifications, client: fetcher)
 
-        // Drain the auto-triggered refresh that fires when auth is .signedIn at init.
+        // Establish a loaded baseline state before each test.
         await model.performRefresh()
     }
 
@@ -134,7 +134,7 @@ final class AppModelTests: XCTestCase {
 
     // MARK: - Successful refresh
 
-    func testSuccessfulRefreshWithReprosProducesLoadedGroups() async {
+    func testSuccessfulRefreshWithReposProducesLoadedGroups() async {
         let repo = makeRepo()
         store.add(repo)
         let pr = makePR(id: "pr1", repo: repo)
@@ -238,22 +238,12 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(auth.state, .signedOut)
     }
 
-    func testTokenRevokedClearedOnNextSignIn() async {
-        // Simulate a revocation sign-out cycle
-        let repo = makeRepo()
-        store.add(repo)
-        fetcher.batchResult = .failure(GitHubError.unauthorized)
-        await model.performRefresh()
-        XCTAssertTrue(model.tokenRevoked)
+    func testViewerSuccessClearsTokenRevoked() async {
+        model.tokenRevoked = true
 
-        // Sign back in via a new pre-seeded keychain
-        let newKeychain = MockKeychain(token: "new-token")
-        let freshAuth = AuthService(keychain: newKeychain, client: BlockingDeviceFlow())
-        fetcher.batchResult = .success(BatchFetchResult())
-        let freshModel = AppModel(auth: freshAuth, store: store, notifications: notifications, client: fetcher)
-        await freshModel.performRefresh()
+        await model.refreshViewer()
 
-        XCTAssertFalse(freshModel.tokenRevoked)
+        XCTAssertFalse(model.tokenRevoked)
     }
 
     // MARK: - SAML
@@ -347,8 +337,17 @@ final class AppModelTests: XCTestCase {
         let prA2 = makePR(id: "prA2", repo: repoA)
         fetcher.singleResult = .success(.init(totalCount: 1, pullRequests: [prA2]))
         model.refreshSingleRepo(repoA)
-        // Give the async single-repo task time to complete (actor hops + async suspension).
-        try? await Task.sleep(nanoseconds: 100_000_000)
+
+        var attempts = 0
+        while attempts < 100 {
+            guard case .loaded(let groups) = model.state else {
+                return XCTFail("Expected .loaded")
+            }
+            if groups.first(where: { $0.repo == repoA })?.pullRequests.first?.id == "prA2" { break }
+            try? await Task.sleep(nanoseconds: 20_000_000)
+            attempts += 1
+        }
+        XCTAssertLessThan(attempts, 100, "Timed out waiting for single-repo refresh")
 
         guard case .loaded(let groups) = model.state else {
             return XCTFail("Expected .loaded")
