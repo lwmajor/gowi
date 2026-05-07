@@ -58,12 +58,12 @@ final class RepoStore: ObservableObject {
             guard !line.isEmpty else { continue }
             guard let repo = TrackedRepo(nameWithOwner: line) else {
                 skipped += 1
-                logger.debug("Skipping invalid imported repo line: \(line, privacy: .private)")
+                logger.debug("Skipping invalid repository line during import: \(line, privacy: .private)")
                 continue
             }
             guard !updatedRepos.contains(repo) else {
                 skipped += 1
-                logger.debug("Skipping duplicate imported repo line: \(line, privacy: .private)")
+                logger.debug("Skipping duplicate repository line during import: \(line, privacy: .private)")
                 continue
             }
             updatedRepos.append(repo)

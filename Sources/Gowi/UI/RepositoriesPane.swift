@@ -62,11 +62,13 @@ struct RepositoriesPane: View {
                 }
                 .disabled(store.repos.isEmpty)
                 .help("Export repositories to the clipboard")
+                .accessibilityIdentifier("exportReposButton")
 
                 Button("Import Repositories") {
                     importRepos()
                 }
                 .help("Import repositories from the clipboard")
+                .accessibilityIdentifier("importReposButton")
 
                 Text("\(store.repos.count) repositories tracked")
                     .font(.caption)
@@ -126,12 +128,13 @@ struct RepositoriesPane: View {
         let text = NSPasteboard.general.string(forType: .string) ?? ""
         let result = store.importRepos(from: text)
         let skippedLabel = result.skipped == 1 ? "entry" : "entries"
+        let skippedReason = "already tracked or invalid"
         if result.added == 0, result.skipped == 0 {
             showActionMessage("No repositories found to import.")
         } else if result.added == 0 {
-            showActionMessage("No new repositories added. All \(result.skipped) \(skippedLabel) were already tracked or invalid.")
+            showActionMessage("No new repositories added. All \(result.skipped) \(skippedLabel) were \(skippedReason).")
         } else {
-            showActionMessage("Added \(result.added) repositories, skipped \(result.skipped) already tracked or invalid \(skippedLabel).")
+            showActionMessage("Added \(result.added) repositories, skipped \(result.skipped) \(skippedReason) \(skippedLabel).")
         }
     }
 
