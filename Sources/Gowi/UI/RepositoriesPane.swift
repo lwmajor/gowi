@@ -73,6 +73,8 @@ struct RepositoriesPane: View {
                 Text(actionMessage)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .accessibilityLabel(actionMessage)
+                    .accessibilityLiveRegion(.polite)
             }
 
             // Intercepts Backspace/Delete key when a row is selected.
@@ -117,7 +119,7 @@ struct RepositoriesPane: View {
     private func importRepos() {
         let text = NSPasteboard.general.string(forType: .string) ?? ""
         let result = store.importRepos(from: text)
-        showActionMessage("Added \(result.added) repos, skipped \(result.skipped) duplicate/invalid lines.")
+        showActionMessage("Added \(result.added) repositories, skipped \(result.skipped) duplicate/invalid lines.")
     }
 
     private func showActionMessage(_ message: String) {
