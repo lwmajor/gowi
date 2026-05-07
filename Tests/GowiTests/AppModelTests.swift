@@ -347,6 +347,7 @@ final class AppModelTests: XCTestCase {
             try? await Task.sleep(nanoseconds: 20_000_000)
             attempts += 1
         }
+        XCTAssertLessThan(attempts, 100, "Timed out waiting for single-repo refresh")
 
         guard case .loaded(let groups) = model.state else {
             return XCTFail("Expected .loaded")
