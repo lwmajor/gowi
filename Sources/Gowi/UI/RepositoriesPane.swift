@@ -75,6 +75,9 @@ struct RepositoriesPane: View {
                 Text(actionMessage)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .accessibilityElement()
+                    .accessibilityLabel("Repository import or export status")
+                    .accessibilityValue(actionMessage)
                     .accessibilityLiveRegion(.polite)
             }
 

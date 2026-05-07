@@ -63,6 +63,7 @@ final class RepoStore: ObservableObject {
             }
             guard !updatedRepos.contains(repo) else {
                 skipped += 1
+                logger.debug("Skipping duplicate imported repo line: \(line, privacy: .private)")
                 continue
             }
             updatedRepos.append(repo)
