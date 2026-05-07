@@ -7,8 +7,6 @@ enum KeychainError: Error, Equatable {
 }
 
 /// Interface for token storage — extracted so tests can inject an in-memory spy.
-/// Implementations should throw domain-specific errors (for example `KeychainError`)
-/// when persistence operations fail.
 protocol KeychainStoring {
     func store(_ token: String) throws
     func read() throws -> String?
