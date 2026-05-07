@@ -338,13 +338,14 @@ final class AppModelTests: XCTestCase {
         fetcher.singleResult = .success(.init(totalCount: 1, pullRequests: [prA2]))
         model.refreshSingleRepo(repoA)
 
-        let timeout = Date().addingTimeInterval(2)
-        while Date() < timeout {
+        var attempts = 0
+        while attempts < 100 {
             guard case .loaded(let groups) = model.state else {
                 return XCTFail("Expected .loaded")
             }
             if groups.first(where: { $0.repo == repoA })?.pullRequests.first?.id == "prA2" { break }
             try? await Task.sleep(nanoseconds: 20_000_000)
+            attempts += 1
         }
 
         guard case .loaded(let groups) = model.state else {
