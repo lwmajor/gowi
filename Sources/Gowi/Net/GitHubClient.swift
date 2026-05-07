@@ -41,6 +41,7 @@ struct GraphQLResponse<T: Decodable>: Decodable {
 }
 
 /// Subset of `GitHubClient` used by `AppModel` and views — extracted so tests can inject a spy.
+/// Implementations are expected to surface API failures as `GitHubError` values.
 protocol PRFetchingClient {
     func fetchViewer() async throws -> Viewer
     func validateRepo(_ repo: TrackedRepo) async throws

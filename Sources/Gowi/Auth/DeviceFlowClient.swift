@@ -41,7 +41,9 @@ enum DeviceFlowError: Error, LocalizedError, Equatable {
     }
 }
 
-/// Interface for the two device-flow network steps — extracted so tests can inject a spy.
+/// Interface for the two OAuth device-flow network steps — extracted so tests can inject a spy.
+/// Implementations should throw `DeviceFlowError` (or compatible errors) for transport,
+/// denial, expiry, or decoding failures.
 protocol DeviceFlowing {
     func requestCode(clientID: String, scopes: String) async throws -> DeviceCodeResponse
     func pollForToken(clientID: String, deviceCode: String, initialInterval: Int) async throws -> String
