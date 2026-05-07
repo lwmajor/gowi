@@ -11,6 +11,18 @@ struct GowiApp: App {
     private let updaterController: SPUStandardUpdaterController
 
     init() {
+        #if DEBUG
+        if UITestConfiguration.isEnabled {
+            let (auth, store, notifications, model) = UITestConfiguration.makeDependencies()
+            _auth = StateObject(wrappedValue: auth)
+            _store = StateObject(wrappedValue: store)
+            _notifications = StateObject(wrappedValue: notifications)
+            _model = StateObject(wrappedValue: model)
+            updaterController = SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: nil, userDriverDelegate: nil)
+            return
+        }
+        #endif
+
         let auth = AuthService()
         let store = RepoStore()
         let notifications = NotificationService(store: store)
