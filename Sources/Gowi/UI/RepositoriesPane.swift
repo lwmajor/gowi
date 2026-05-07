@@ -63,6 +63,7 @@ struct RepositoriesPane: View {
                 .disabled(store.repos.isEmpty)
                 .help("Export repositories to the clipboard")
                 .accessibilityIdentifier("exportReposButton")
+                .accessibilityHint(store.repos.isEmpty ? "Requires at least one tracked repository." : "Copies tracked repositories to the clipboard.")
 
                 Button("Import Repositories") {
                     importRepos()
@@ -133,6 +134,8 @@ struct RepositoriesPane: View {
             showActionMessage("No repositories found to import.")
         } else if result.added == 0 {
             showActionMessage("No new repositories added. All \(result.skipped) \(skippedLabel) were \(skippedReason).")
+        } else if result.skipped == 0 {
+            showActionMessage("Added \(result.added) repositories.")
         } else {
             showActionMessage("Added \(result.added) repositories, skipped \(result.skipped) \(skippedReason) \(skippedLabel).")
         }
