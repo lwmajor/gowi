@@ -1,11 +1,16 @@
+import AppKit
 import SwiftUI
 
 struct RepositoriesPane: View {
+    private let actionMessageDuration: Duration = .seconds(2)
+
     @EnvironmentObject private var store: RepoStore
     @EnvironmentObject private var model: AppModel
     @State private var showingAdd = false
     @State private var selectedRepo: TrackedRepo.ID?
     @State private var repoToDelete: TrackedRepo?
+    @State private var actionMessage: String?
+    @State private var actionMessageToken = UUID()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -52,9 +57,32 @@ struct RepositoriesPane: View {
                 .help("Remove selected repository")
 
                 Spacer()
-                Text("\(store.repos.count) tracked")
+                Button("Export Repositories") {
+                    exportRepos()
+                }
+                .disabled(store.repos.isEmpty)
+                .help("Export repositories to the clipboard")
+                .accessibilityIdentifier("exportReposButton")
+                .accessibilityHint(store.repos.isEmpty ? "Requires at least one tracked repository." : "Copies tracked repositories to the clipboard.")
+
+                Button("Import Repositories") {
+                    importRepos()
+                }
+                .help("Import repositories from the clipboard")
+                .accessibilityIdentifier("importReposButton")
+
+                Text(trackedCountLabel)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            if let actionMessage {
+                Text(actionMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityElement()
+                    .accessibilityLabel("Repository import or export status")
+                    .accessibilityValue(actionMessage)
             }
 
             // Intercepts Backspace/Delete key when a row is selected.
@@ -87,6 +115,51 @@ struct RepositoriesPane: View {
     private func confirmDelete(id: TrackedRepo.ID?) {
         guard let id, let repo = store.repos.first(where: { $0.id == id }) else { return }
         repoToDelete = repo
+    }
+
+    private func exportRepos() {
+        let text = store.exportText()
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+        showActionMessage("Copied!")
+    }
+
+    private func importRepos() {
+        let text = NSPasteboard.general.string(forType: .string) ?? ""
+        let result = store.importRepos(from: text)
+        showActionMessage(importMessage(for: result))
+    }
+
+    private func showActionMessage(_ message: String) {
+        let token = UUID()
+        actionMessageToken = token
+        actionMessage = message
+
+        Task { @MainActor in
+            try? await Task.sleep(for: actionMessageDuration)
+            guard actionMessageToken == token else { return }
+            actionMessage = nil
+        }
+    }
+
+    private var trackedCountLabel: String {
+        let repoLabel = store.repos.count == 1 ? "repository" : "repositories"
+        return "\(store.repos.count) \(repoLabel) tracked"
+    }
+
+    private func importMessage(for result: RepoStore.ImportResult) -> String {
+        let skippedLabel = result.skipped == 1 ? "entry" : "entries"
+
+        if result.added == 0, result.skipped == 0 {
+            return "No repositories found to import."
+        }
+        if result.added == 0 {
+            return "No new repositories added. All \(result.skipped) \(skippedLabel) were already tracked or invalid."
+        }
+        if result.skipped == 0 {
+            return "Added \(result.added) repositories."
+        }
+        return "Added \(result.added) repositories, skipped \(result.skipped) \(skippedLabel) that were already tracked or invalid."
     }
 
     private var emptyState: some View {
