@@ -66,18 +66,35 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.lloydmajor.gowi.tests
         GENERATE_INFOPLIST_FILE: YES
 
+  GowiUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Tests/GowiUITests
+    dependencies:
+      - target: Gowi
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lloydmajor.gowi.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Gowi
+        ENABLE_HARDENED_RUNTIME: NO
+
 schemes:
   gowi:
     build:
       targets:
         Gowi: all
         GowiTests: [test]
+        GowiUITests: [test]
     run:
       config: Debug
     test:
       config: Debug
       targets:
         - GowiTests
+        - GowiUITests
     profile:
       config: Release
     analyze:

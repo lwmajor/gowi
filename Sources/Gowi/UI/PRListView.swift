@@ -44,6 +44,7 @@ struct PRListView: View {
         }
         .listStyle(.inset)
         .refreshable { await onPullRefresh() }
+        .accessibilityIdentifier(AccessibilityID.Main.prList)
     }
 
     private static let childRowInsets = EdgeInsets(top: 2, leading: -20, bottom: 2, trailing: 4)
@@ -133,6 +134,9 @@ struct PRListView: View {
             Spacer()
             Button("Retry") { onRetry(repo) }
                 .buttonStyle(.link)
+                .accessibilityIdentifier(AccessibilityID.PRRow.errorRetry(repo.id))
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(AccessibilityID.PRRow.errorRow(repo.id))
     }
 }

@@ -50,6 +50,7 @@ struct MainWindow: View {
                 case .signedOut, .loading:
                     ProgressView("Loading…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .accessibilityIdentifier(AccessibilityID.Main.loading)
                 case .loaded(let groups):
                     let hasErrors = groups.contains { $0.error != nil }
                     if !hasErrors && (groups.isEmpty || totalPRs(groups) == 0) {
@@ -92,6 +93,7 @@ struct MainWindow: View {
                 .disabled(model.isRefreshing)
                 .keyboardShortcut("r", modifiers: .command)
                 .help(model.rateLimitWarning ? "Rate limit low — refresh paused" : "Refresh now (⌘R)")
+                .accessibilityIdentifier(AccessibilityID.Main.refreshButton)
             }
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -111,7 +113,9 @@ struct MainWindow: View {
             icon: "key.slash", accentColor: .red,
             title: "GitHub token revoked",
             message: "Your access token was revoked. Sign in again to continue.",
-            onDismiss: { model.tokenRevoked = false }
+            onDismiss: { model.tokenRevoked = false },
+            rootID: AccessibilityID.Banner.tokenRevoked,
+            dismissID: AccessibilityID.Banner.tokenRevokedDismiss
         )
     }
 
@@ -134,11 +138,14 @@ struct MainWindow: View {
             Button("Retry") { model.refresh() }
                 .font(.caption)
                 .buttonStyle(.borderless)
+                .accessibilityIdentifier(AccessibilityID.Banner.cachedRetry)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(Color(nsColor: .controlBackgroundColor))
         .overlay(alignment: .bottom) { Divider() }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(AccessibilityID.Banner.cached)
     }
 
     private func samlBanner(url: URL) -> some View {
@@ -147,7 +154,10 @@ struct MainWindow: View {
             title: "GitHub SSO authorization required",
             message: "Your token needs to be authorized for your organization.",
             action: ("Authorize Token", { NSWorkspace.shared.open(url); model.samlAuthURL = nil }),
-            onDismiss: { model.samlAuthURL = nil }
+            onDismiss: { model.samlAuthURL = nil },
+            rootID: AccessibilityID.Banner.saml,
+            actionID: AccessibilityID.Banner.samlAuthorize,
+            dismissID: AccessibilityID.Banner.samlDismiss
         )
     }
 
@@ -157,7 +167,10 @@ struct MainWindow: View {
         title: String,
         message: String,
         action: (label: String, handler: () -> Void)? = nil,
-        onDismiss: @escaping () -> Void
+        onDismiss: @escaping () -> Void,
+        rootID: String? = nil,
+        actionID: String? = nil,
+        dismissID: String? = nil
     ) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
@@ -174,6 +187,7 @@ struct MainWindow: View {
                 Button(action.label, action: action.handler)
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
+                    .accessibilityIdentifier(actionID ?? "")
             }
             Button { onDismiss() } label: {
                 Image(systemName: "xmark")
@@ -182,6 +196,7 @@ struct MainWindow: View {
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
             .help("Dismiss")
+            .accessibilityIdentifier(dismissID ?? "")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -189,6 +204,8 @@ struct MainWindow: View {
         .overlay(alignment: .bottom) {
             Divider()
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(rootID ?? "")
     }
 
     // MARK: - states
@@ -207,9 +224,12 @@ struct MainWindow: View {
                 .padding(.horizontal)
             Button("Open Settings") { openSettings() }
                 .keyboardShortcut(.defaultAction)
+                .accessibilityIdentifier(AccessibilityID.Main.openSettingsButton)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(AccessibilityID.Main.emptyState)
     }
 
     private var allClearState: some View {
@@ -223,9 +243,12 @@ struct MainWindow: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
             Button("Refresh") { model.refresh() }
+                .accessibilityIdentifier(AccessibilityID.Main.allClearRefreshButton)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(AccessibilityID.Main.allClear)
     }
 
     private func errorState(_ msg: String) -> some View {
@@ -239,9 +262,12 @@ struct MainWindow: View {
                 .padding(.horizontal)
             Button("Retry") { model.refresh() }
                 .keyboardShortcut(.defaultAction)
+                .accessibilityIdentifier(AccessibilityID.Main.errorRetryButton)
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(AccessibilityID.Main.errorState)
     }
 
     // MARK: - helpers

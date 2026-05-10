@@ -56,6 +56,8 @@ struct PRRow: View {
             }
         }
         .help(pr.title)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(AccessibilityID.PRRow.id(pr.id))
     }
 
     @ViewBuilder
