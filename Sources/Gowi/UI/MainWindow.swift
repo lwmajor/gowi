@@ -13,28 +13,10 @@ struct MainWindow: View {
                 .navigationTitle(windowTitle)
                 .toolbar { toolbarContent }
         }
-        .onAppear {
-            markSeen()
-            forceActivationForUITestsIfNeeded()
-        }
+        .onAppear { markSeen() }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
             markSeen()
         }
-    }
-
-    /// On the CI runner the Gowi window can launch behind a pre-existing Safari
-    /// window, leaving the accessibility query target invisible to XCUITest.
-    /// Force the app forward and key the main window when running under
-    /// `-ui-testing`. No-op in production builds.
-    private func forceActivationForUITestsIfNeeded() {
-        #if DEBUG
-        guard UITestConfiguration.isEnabled else { return }
-        NSApplication.shared.activate(ignoringOtherApps: true)
-        if let window = NSApp.windows.first(where: { $0.canBecomeKey && $0.identifier?.rawValue.hasPrefix("main") == true })
-            ?? NSApp.windows.first(where: { $0.canBecomeKey && $0.contentViewController != nil }) {
-            window.makeKeyAndOrderFront(nil)
-        }
-        #endif
     }
 
     private var windowTitle: String {
