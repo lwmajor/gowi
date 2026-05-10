@@ -52,6 +52,13 @@ struct MenuBarRoot: View {
                 .font(.headline)
                 .monospacedDigit()
             Spacer()
+            Toggle(isOn: $model.showOnlyAssignedToMe) {
+                Image(systemName: "person.fill")
+            }
+            .toggleStyle(.button)
+            .buttonStyle(.borderless)
+            .help("Show only PRs assigned to me")
+
             Button { model.refresh() } label: {
                 if model.isRefreshing {
                     ProgressView().controlSize(.small)
@@ -95,8 +102,9 @@ struct MenuBarRoot: View {
             switch model.state {
             case .signedOut, .loading:
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
-            case .loaded(let groups):
-                if totalCount == 0 {
+            case .loaded:
+                let filtered = model.filteredGroups
+                if filtered.reduce(0, { $0 + $1.totalCount }) == 0 {
                     centred {
                         Image(systemName: "checkmark.seal")
                             .font(.largeTitle).foregroundStyle(.green)
@@ -104,7 +112,7 @@ struct MenuBarRoot: View {
                     }
                 } else {
                     PRListView(
-                        groups: groups,
+                        groups: filtered,
                         onRetry: { repo in
                             if let repo { model.refreshSingleRepo(repo) } else { model.refresh() }
                         },
@@ -183,10 +191,7 @@ struct MenuBarRoot: View {
     }
 
     private var totalCount: Int {
-        if case .loaded(let groups) = model.state {
-            return groups.reduce(0) { $0 + $1.totalCount }
-        }
-        return 0
+        model.filteredGroups.reduce(0) { $0 + $1.totalCount }
     }
 
     private func openMainWindow() {

@@ -232,7 +232,8 @@ private final class UITestPRFetcher: PRFetchingClient {
                 updatedAt: updatedAt,
                 repo: repo,
                 reviewDecision: review,
-                checkStatus: check
+                checkStatus: check,
+                assignees: []
             )
         }
     }

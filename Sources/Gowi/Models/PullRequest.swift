@@ -1,5 +1,10 @@
 import Foundation
 
+struct UserRef: Codable, Hashable {
+    let login: String
+    let avatarURL: URL?
+}
+
 enum ReviewDecision: String, Codable {
     case approved
     case changesRequested
@@ -27,4 +32,5 @@ struct PullRequest: Identifiable, Codable, Hashable {
     let repo: TrackedRepo
     let reviewDecision: ReviewDecision
     let checkStatus: CheckStatus
+    let assignees: [UserRef]
 }

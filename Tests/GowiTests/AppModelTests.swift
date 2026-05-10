@@ -56,7 +56,7 @@ private func makeRepo(_ name: String = "repo") -> TrackedRepo {
     TrackedRepo(owner: "org", name: name)
 }
 
-private func makePR(id: String, repo: TrackedRepo) -> PullRequest {
+private func makePR(id: String, repo: TrackedRepo, assignees: [UserRef] = []) -> PullRequest {
     PullRequest(
         id: id,
         number: 1,
@@ -69,7 +69,8 @@ private func makePR(id: String, repo: TrackedRepo) -> PullRequest {
         updatedAt: Date(),
         repo: repo,
         reviewDecision: .noReview,
-        checkStatus: .noChecks
+        checkStatus: .noChecks,
+        assignees: assignees
     )
 }
 
@@ -314,6 +315,65 @@ final class AppModelTests: XCTestCase {
         }
         XCTAssertEqual(groups.first?.repo, repoB, "Repo B should be first after move")
         XCTAssertEqual(fetcher.batchCallCount, callsBefore, "moveRepo must not trigger a fetch")
+    }
+
+    // MARK: - Assigned-to-me filter
+
+    func testFilterOffShowsAllPRs() async {
+        let repo = makeRepo()
+        store.add(repo)
+        let pr1 = makePR(id: "pr1", repo: repo, assignees: [UserRef(login: "test-user", avatarURL: nil)])
+        let pr2 = makePR(id: "pr2", repo: repo, assignees: [])
+        fetcher.batchResult = .success(batchResult(repo: repo, prs: [pr1, pr2]))
+        model.viewer = Viewer(login: "test-user", avatarUrl: URL(string: "https://example.com/a.png")!)
+        model.showOnlyAssignedToMe = false
+
+        await model.performRefresh()
+
+        XCTAssertEqual(model.filteredGroups.first?.pullRequests.count, 2)
+    }
+
+    func testFilterOnRetainsOnlyMatchingPRs() async {
+        let repo = makeRepo()
+        store.add(repo)
+        let pr1 = makePR(id: "pr1", repo: repo, assignees: [UserRef(login: "test-user", avatarURL: nil)])
+        let pr2 = makePR(id: "pr2", repo: repo, assignees: [UserRef(login: "other-user", avatarURL: nil)])
+        fetcher.batchResult = .success(batchResult(repo: repo, prs: [pr1, pr2]))
+        model.viewer = Viewer(login: "test-user", avatarUrl: URL(string: "https://example.com/a.png")!)
+
+        await model.performRefresh()
+        model.showOnlyAssignedToMe = true
+
+        let groups = model.filteredGroups
+        XCTAssertEqual(groups.first?.pullRequests.count, 1)
+        XCTAssertEqual(groups.first?.pullRequests.first?.id, "pr1")
+    }
+
+    func testFilterOnWithNoViewerShowsAllPRs() async {
+        let repo = makeRepo()
+        store.add(repo)
+        let pr = makePR(id: "pr1", repo: repo, assignees: [UserRef(login: "someone", avatarURL: nil)])
+        fetcher.batchResult = .success(batchResult(repo: repo, prs: [pr]))
+        model.viewer = nil
+
+        await model.performRefresh()
+        model.showOnlyAssignedToMe = true
+
+        XCTAssertEqual(model.filteredGroups.first?.pullRequests.count, 1)
+    }
+
+    func testFilterUpdatesTotalCount() async {
+        let repo = makeRepo()
+        store.add(repo)
+        let pr1 = makePR(id: "pr1", repo: repo, assignees: [UserRef(login: "test-user", avatarURL: nil)])
+        let pr2 = makePR(id: "pr2", repo: repo, assignees: [])
+        fetcher.batchResult = .success(batchResult(repo: repo, prs: [pr1, pr2]))
+        model.viewer = Viewer(login: "test-user", avatarUrl: URL(string: "https://example.com/a.png")!)
+
+        await model.performRefresh()
+        model.showOnlyAssignedToMe = true
+
+        XCTAssertEqual(model.filteredGroups.first?.totalCount, 1)
     }
 
     // MARK: - refreshSingleRepo
