@@ -125,7 +125,7 @@ extension GitHubClient {
                 updatedAt
                 author { login avatarUrl }
                 reviewDecision
-                assignees(first: 5) { nodes { login avatarUrl } }
+                assignees(first: 25) { nodes { login avatarUrl } }
                 commits(last: 1) {
                   nodes { commit { statusCheckRollup { state } } }
                 }
