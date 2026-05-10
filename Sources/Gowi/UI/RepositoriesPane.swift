@@ -83,7 +83,6 @@ struct RepositoriesPane: View {
                     .accessibilityElement()
                     .accessibilityLabel("Repository import or export status")
                     .accessibilityValue(actionMessage)
-                    .accessibilityLiveRegion(.polite)
             }
 
             // Intercepts Backspace/Delete key when a row is selected.
