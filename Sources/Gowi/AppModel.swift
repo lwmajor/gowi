@@ -7,6 +7,15 @@ enum PRState {
     case loading
     case loaded([RepoGroup])
     case error(String)
+
+    var totalOpenPRs: Int {
+        if case .loaded(let groups) = self { return groups.totalOpenPRs }
+        return 0
+    }
+}
+
+extension Sequence where Element == RepoGroup {
+    var totalOpenPRs: Int { reduce(0) { $0 + $1.totalCount } }
 }
 
 struct RepoGroup: Identifiable, Hashable, Codable {
@@ -119,6 +128,20 @@ final class AppModel: ObservableObject {
         } catch {
             lastError = error.localizedDescription
         }
+    }
+
+    // MARK: - last-seen marker
+
+    static let lastSeenAtKey = "lastSeenAt"
+
+    /// Update the "last seen" timestamp consumed by `PRRow` to flag new PRs.
+    /// Debounced: many `didBecomeKey` notifications can fire per second across
+    /// windows, and every write would invalidate the @AppStorage of every row.
+    func markPRsSeen() {
+        let defaults = UserDefaults.standard
+        let now = Date().timeIntervalSince1970
+        guard now - defaults.double(forKey: Self.lastSeenAtKey) > 1 else { return }
+        defaults.set(now, forKey: Self.lastSeenAtKey)
     }
 
     // MARK: - PR refresh

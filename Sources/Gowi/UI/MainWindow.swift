@@ -13,15 +13,15 @@ struct MainWindow: View {
                 .navigationTitle(windowTitle)
                 .toolbar { toolbarContent }
         }
-        .onAppear { markSeen() }
+        .onAppear { model.markPRsSeen() }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
-            markSeen()
+            model.markPRsSeen()
         }
     }
 
     private var windowTitle: String {
         guard auth.state == .signedIn else { return "gowi" }
-        let total = totalPRs(groups)
+        let total = model.state.totalOpenPRs
         return total > 0 ? "\(total) open" : "gowi"
     }
 
@@ -54,7 +54,7 @@ struct MainWindow: View {
                 case .loaded:
                     let filtered = model.filteredGroups
                     let hasErrors = filtered.contains { $0.error != nil }
-                    if !hasErrors && (filtered.isEmpty || totalPRs(filtered) == 0) {
+                    if !hasErrors && (filtered.isEmpty || filtered.totalOpenPRs == 0) {
                         allClearState
                     } else {
                         PRListView(
@@ -127,8 +127,6 @@ struct MainWindow: View {
         )
     }
 
-    // MARK: - cached data banner
-
     private var cachedDataBanner: some View {
         HStack(spacing: 8) {
             Image(systemName: "clock.arrow.circlepath")
@@ -195,7 +193,7 @@ struct MainWindow: View {
                 Button(action.label, action: action.handler)
                     .buttonStyle(.borderedProminent)
                     .controlSize(.small)
-                    .accessibilityIdentifier(actionID ?? "")
+                    .accessibilityIdentifier(ifPresent: actionID)
             }
             Button { onDismiss() } label: {
                 Image(systemName: "xmark")
@@ -204,7 +202,7 @@ struct MainWindow: View {
             .buttonStyle(.plain)
             .foregroundStyle(.secondary)
             .help("Dismiss")
-            .accessibilityIdentifier(dismissID ?? "")
+            .accessibilityIdentifier(ifPresent: dismissID)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -213,7 +211,7 @@ struct MainWindow: View {
             Divider()
         }
         .accessibilityElement(children: .contain)
-        .accessibilityIdentifier(rootID ?? "")
+        .accessibilityIdentifier(ifPresent: rootID)
     }
 
     // MARK: - states
@@ -277,19 +275,11 @@ struct MainWindow: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier(AccessibilityID.Main.errorState)
     }
+}
 
-    // MARK: - helpers
-
-    private var groups: [RepoGroup] {
-        if case .loaded(let g) = model.state { return g }
-        return []
-    }
-
-    private func totalPRs(_ groups: [RepoGroup]) -> Int {
-        groups.reduce(0) { $0 + $1.totalCount }
-    }
-
-    private func markSeen() {
-        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "lastSeenAt")
+private extension View {
+    @ViewBuilder
+    func accessibilityIdentifier(ifPresent id: String?) -> some View {
+        if let id { self.accessibilityIdentifier(id) } else { self }
     }
 }

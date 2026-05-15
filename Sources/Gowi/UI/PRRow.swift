@@ -4,6 +4,7 @@ import AppKit
 struct PRRow: View {
     let pr: PullRequest
     @State private var hovering = false
+    // @AppStorage requires a string literal — keep in sync with `AppModel.lastSeenAtKey`.
     @AppStorage("lastSeenAt") private var lastSeenAtTimestamp: Double = 0
 
     private var isNew: Bool {
@@ -131,6 +132,10 @@ struct PRRow: View {
     }()
 }
 
+private struct StatusIconPlaceholder: View {
+    var body: some View { Color.clear.frame(width: 16, height: 16) }
+}
+
 struct ReviewIcon: View {
     let decision: ReviewDecision
     var body: some View {
@@ -148,10 +153,9 @@ struct ReviewIcon: View {
                 .foregroundStyle(.secondary)
                 .help("Review required")
         case .noReview:
-            placeholder
+            StatusIconPlaceholder()
         }
     }
-    private var placeholder: some View { Color.clear.frame(width: 16, height: 16) }
 }
 
 struct CheckIcon: View {
@@ -171,8 +175,7 @@ struct CheckIcon: View {
                 .foregroundStyle(.yellow)
                 .help("Checks pending")
         case .noChecks:
-            placeholder
+            StatusIconPlaceholder()
         }
     }
-    private var placeholder: some View { Color.clear.frame(width: 16, height: 16) }
 }

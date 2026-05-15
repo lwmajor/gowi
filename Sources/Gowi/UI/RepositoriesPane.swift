@@ -62,14 +62,14 @@ struct RepositoriesPane: View {
                 }
                 .disabled(store.repos.isEmpty)
                 .help("Export repositories to the clipboard")
-                .accessibilityIdentifier("exportReposButton")
+                .accessibilityIdentifier(AccessibilityID.Repositories.exportButton)
                 .accessibilityHint(store.repos.isEmpty ? "Requires at least one tracked repository." : "Copies tracked repositories to the clipboard.")
 
                 Button("Import Repositories") {
                     importRepos()
                 }
                 .help("Import repositories from the clipboard")
-                .accessibilityIdentifier("importReposButton")
+                .accessibilityIdentifier(AccessibilityID.Repositories.importButton)
 
                 Text(trackedCountLabel)
                     .font(.caption)
@@ -183,18 +183,19 @@ private struct NotifyToggle: View {
     let repo: TrackedRepo
 
     var body: some View {
+        let on = notifications.isEnabled(repo)
         let isOn = Binding<Bool>(
-            get: { notifications.isEnabled(repo) },
+            get: { on },
             set: { newValue in
                 Task { await notifications.setEnabled(newValue, for: repo) }
             }
         )
         Toggle(isOn: isOn) {
-            Image(systemName: notifications.isEnabled(repo) ? "bell.fill" : "bell.slash")
+            Image(systemName: on ? "bell.fill" : "bell.slash")
         }
         .toggleStyle(.button)
         .buttonStyle(.borderless)
-        .help(notifications.isEnabled(repo) ? "Notifications on for this repo" : "Notify on new PRs")
+        .help(on ? "Notifications on for this repo" : "Notify on new PRs")
     }
 }
 

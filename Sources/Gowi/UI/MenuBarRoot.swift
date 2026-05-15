@@ -9,17 +9,11 @@ struct MenuBarLabel: View {
     var body: some View {
         HStack(spacing: 3) {
             Image(systemName: "arrow.triangle.branch")
-            if totalCount > 0 {
-                Text("\(totalCount)").monospacedDigit()
+            let count = model.state.totalOpenPRs
+            if count > 0 {
+                Text("\(count)").monospacedDigit()
             }
         }
-    }
-
-    private var totalCount: Int {
-        if case .loaded(let groups) = model.state {
-            return groups.reduce(0) { $0 + $1.totalCount }
-        }
-        return 0
     }
 }
 
@@ -41,14 +35,14 @@ struct MenuBarRoot: View {
             footer
         }
         .frame(width: 420, height: 560)
-        .onAppear { markSeen() }
+        .onAppear { model.markPRsSeen() }
     }
 
     // MARK: - sections
 
     private var header: some View {
         HStack(spacing: 8) {
-            Text("\(totalCount) open")
+            Text("\(model.filteredGroups.totalOpenPRs) open")
                 .font(.headline)
                 .monospacedDigit()
             Spacer()
@@ -104,7 +98,7 @@ struct MenuBarRoot: View {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             case .loaded:
                 let filtered = model.filteredGroups
-                if filtered.reduce(0, { $0 + $1.totalCount }) == 0 {
+                if filtered.totalOpenPRs == 0 {
                     centred {
                         Image(systemName: "checkmark.seal")
                             .font(.largeTitle).foregroundStyle(.green)
@@ -190,16 +184,8 @@ struct MenuBarRoot: View {
         .padding()
     }
 
-    private var totalCount: Int {
-        model.filteredGroups.reduce(0) { $0 + $1.totalCount }
-    }
-
     private func openMainWindow() {
-        openWindow(id: "main")
+        openWindow(id: Config.mainWindowID)
         NSApp.activate(ignoringOtherApps: true)
-    }
-
-    private func markSeen() {
-        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "lastSeenAt")
     }
 }
