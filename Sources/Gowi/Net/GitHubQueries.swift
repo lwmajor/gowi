@@ -82,8 +82,16 @@ extension GitHubClient {
         let author: Author?
         let reviewDecision: String?
         let commits: CommitsContainer?
+        let assignees: AssigneesContainer?
 
         struct Author: Decodable {
+            let login: String
+            let avatarUrl: URL?
+        }
+        struct AssigneesContainer: Decodable {
+            let nodes: [AssigneeNode]
+        }
+        struct AssigneeNode: Decodable {
             let login: String
             let avatarUrl: URL?
         }
@@ -117,6 +125,7 @@ extension GitHubClient {
                 updatedAt
                 author { login avatarUrl }
                 reviewDecision
+                assignees(first: 25) { nodes { login avatarUrl } }
                 commits(last: 1) {
                   nodes { commit { statusCheckRollup { state } } }
                 }
@@ -156,7 +165,8 @@ enum PRMapper {
             updatedAt: w.updatedAt,
             repo: repo,
             reviewDecision: mapReview(w.reviewDecision),
-            checkStatus: mapChecks(w.commits?.nodes.first?.commit.statusCheckRollup?.state)
+            checkStatus: mapChecks(w.commits?.nodes.first?.commit.statusCheckRollup?.state),
+            assignees: w.assignees?.nodes.map { UserRef(login: $0.login, avatarURL: $0.avatarUrl) } ?? []
         )
     }
 

@@ -22,6 +22,11 @@ struct PRRow: View {
                 .frame(width: 24, height: 24)
                 .clipShape(Circle())
 
+            if !pr.assignees.isEmpty {
+                Divider().frame(maxHeight: 16)
+                assigneeAvatarsView
+            }
+
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     if pr.isDraft { draftPill }
@@ -59,6 +64,37 @@ struct PRRow: View {
         .help(pr.title)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier(AccessibilityID.PRRow.id(pr.id))
+    }
+
+    @ViewBuilder
+    private var assigneeAvatarsView: some View {
+        HStack(spacing: 3) {
+            ForEach(Array(pr.assignees.prefix(3)), id: \.login) { assignee in
+                assigneeAvatar(for: assignee)
+            }
+            if pr.assignees.count > 3 {
+                Text("+\(pr.assignees.count - 3)")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func assigneeAvatar(for user: UserRef) -> some View {
+        Group {
+            if let url = user.avatarURL {
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Circle().fill(.secondary.opacity(0.2))
+                }
+            } else {
+                Circle().fill(.secondary.opacity(0.2))
+            }
+        }
+        .frame(width: 16, height: 16)
+        .clipShape(Circle())
     }
 
     @ViewBuilder

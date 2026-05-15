@@ -51,13 +51,14 @@ struct MainWindow: View {
                     ProgressView("Loading…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .accessibilityIdentifier(AccessibilityID.Main.loading)
-                case .loaded(let groups):
-                    let hasErrors = groups.contains { $0.error != nil }
-                    if !hasErrors && (groups.isEmpty || model.state.totalOpenPRs == 0) {
+                case .loaded:
+                    let filtered = model.filteredGroups
+                    let hasErrors = filtered.contains { $0.error != nil }
+                    if !hasErrors && (filtered.isEmpty || filtered.totalOpenPRs == 0) {
                         allClearState
                     } else {
                         PRListView(
-                            groups: groups,
+                            groups: filtered,
                             onRetry: { repo in
                                 if let repo { model.refreshSingleRepo(repo) } else { model.refresh() }
                             },
@@ -74,6 +75,13 @@ struct MainWindow: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         if auth.state == .signedIn {
+            ToolbarItem(placement: .primaryAction) {
+                Toggle(isOn: $model.showOnlyAssignedToMe) {
+                    Image(systemName: "person.fill")
+                }
+                .toggleStyle(.button)
+                .help("Show only PRs assigned to me")
+            }
             ToolbarItem(placement: .primaryAction) {
                 Button { model.refresh() } label: {
                     ZStack(alignment: .topTrailing) {
