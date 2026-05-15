@@ -63,6 +63,7 @@ extension GitHubClient {
                     id number title url isDraft createdAt updatedAt
                     author { login avatarUrl }
                     reviewDecision
+                    assignees(first: 25) { nodes { login avatarUrl } }
                     commits(last: 1) { nodes { commit { statusCheckRollup { state } } } }
                   }
                 }

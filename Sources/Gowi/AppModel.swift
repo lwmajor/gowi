@@ -28,6 +28,16 @@ final class AppModel: ObservableObject {
     @Published var samlAuthURL: URL?
     @Published var isShowingCachedData: Bool = false
     @Published var tokenRevoked: Bool = false
+    @Published var showOnlyAssignedToMe: Bool = false
+
+    var filteredGroups: [RepoGroup] {
+        guard case .loaded(let groups) = state else { return [] }
+        guard showOnlyAssignedToMe, let viewerLogin = viewer?.login else { return groups }
+        return groups.map { group in
+            let filtered = group.pullRequests.filter { $0.assignees.contains { $0.login == viewerLogin } }
+            return RepoGroup(repo: group.repo, pullRequests: filtered, totalCount: filtered.count, error: group.error)
+        }
+    }
 
     let github: any PRFetchingClient
     private let auth: AuthService

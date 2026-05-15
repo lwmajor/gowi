@@ -28,7 +28,8 @@ private func makePR(id: String, repo: TrackedRepo) -> PullRequest {
         updatedAt: Date(),
         repo: repo,
         reviewDecision: .noReview,
-        checkStatus: .noChecks
+        checkStatus: .noChecks,
+        assignees: []
     )
 }
 
