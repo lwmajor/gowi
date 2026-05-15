@@ -30,4 +30,9 @@ enum AccessibilityID {
         static func errorRow(_ repoID: String) -> String { "prRow.error.\(repoID)" }
         static func errorRetry(_ repoID: String) -> String { "prRow.error.\(repoID).retry" }
     }
+
+    enum Repositories {
+        static let exportButton = "exportReposButton"
+        static let importButton = "importReposButton"
+    }
 }

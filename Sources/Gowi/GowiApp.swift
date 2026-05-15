@@ -35,7 +35,7 @@ struct GowiApp: App {
     }
 
     var body: some Scene {
-        WindowGroup("gowi", id: "main") {
+        WindowGroup("gowi", id: Config.mainWindowID) {
             MainWindow()
                 .environmentObject(model)
                 .environmentObject(auth)

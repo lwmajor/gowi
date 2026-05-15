@@ -48,6 +48,7 @@ struct PRListView: View {
     }
 
     private static let childRowInsets = EdgeInsets(top: 2, leading: -20, bottom: 2, trailing: 4)
+    private static let placeholderRowInsets = EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16)
 
     @ViewBuilder
     private func body(for group: RepoGroup) -> some View {
@@ -58,7 +59,7 @@ struct PRListView: View {
             Text("No open PRs")
                 .font(.callout)
                 .foregroundStyle(.secondary)
-                .listRowInsets(EdgeInsets(top: 2, leading: 16, bottom: 2, trailing: 16))
+                .listRowInsets(Self.placeholderRowInsets)
         } else {
             ForEach(group.pullRequests) { pr in
                 PRRow(pr: pr)
